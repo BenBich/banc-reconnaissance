@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex, nofollow">
+<title>Banc d'essai de reconnaissance des cartes</title>
+<!--
+  BANC D'ESSAI — reconnaissance des cartes par la caméra du téléphone (ou la webcam du PC).
+  Page autonome : aucune connexion à l'appli de suivi, aucune donnée envoyée nulle part (la caméra et les
+  calculs restent dans le navigateur ; seules les images et listes de cartes de MarvelCDB sont téléchargées).
+  Sert à décider « téléphone ou caméra dans la machine » avant tout achat (voir §3 du document de référence
+  de la machine : « À valider empiriquement avant de s'y fier »).
+-->
+<style>
+:root{--bg:#f4f3f7;--surf:#fff;--surf2:#f0eef5;--surf3:#e6e3ee;--bdr:#dcd9e3;--bdr2:#c5c1d1;--red:#d61f2b;--red2:#a8161f;--gold:#c98a0a;--gold-tx:#8a5f08;--blue:#2563eb;--green:#15803d;--txt:#211f2c;--dim:#565169;--dim2:#726e8c;--r:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.45;}
+.top{background:linear-gradient(135deg,#1a1a22,#2a0a0f 50%,#1a1a22);border-bottom:2px solid var(--red);color:#fff;padding:14px 16px;}
+.top h1{font-size:18px;font-weight:800;letter-spacing:.2px;}
+.top p{font-size:13px;color:#cfcbe0;margin-top:2px;max-width:760px;}
+main{max-width:780px;margin:0 auto;padding:14px 12px 60px;display:flex;flex-direction:column;gap:14px;}
+.step{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 14px 16px;}
+.step h2{font-size:16px;font-weight:800;margin-bottom:4px;display:flex;gap:9px;align-items:baseline;}
+.step h2 .n{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;font-size:12px;align-items:center;justify-content:center;flex:none;transform:translateY(-1px);}
+.step .sub{font-size:13px;color:var(--dim);margin-bottom:10px;}
+label.lbl{display:block;font-size:12px;font-weight:700;color:var(--dim);margin:10px 0 4px;}
+input[type=text],input[type=number],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--bdr2);border-radius:var(--r);background:var(--surf2);color:var(--txt);font-size:15px;font-family:inherit;}
+textarea{min-height:70px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--blue);outline-offset:1px;}
+.row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;}
+.row>input{flex:1;min-width:0;}
+button{font-family:inherit;font-size:14px;font-weight:700;border-radius:var(--r);padding:10px 14px;cursor:pointer;border:1px solid var(--bdr2);background:var(--surf);color:var(--txt);}
+button:hover:not(:disabled){border-color:var(--dim);}
+button.pri{background:var(--red);border-color:var(--red);color:#fff;}
+button.pri:hover:not(:disabled){background:var(--red2);border-color:var(--red2);}
+button:disabled{opacity:.45;cursor:not-allowed;}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.msg{font-size:13px;margin-top:8px;color:var(--dim);min-height:18px;}
+.msg.err{color:var(--red);}.msg.ok{color:var(--green);}
+.chk{display:flex;gap:9px;align-items:flex-start;margin:8px 0;font-size:14px;}
+.chk input{width:18px;height:18px;margin-top:2px;flex:none;}
+.chk small{display:block;color:var(--dim);font-size:12px;}
+.tabs{display:flex;gap:0;border:1px solid var(--bdr2);border-radius:var(--r);overflow:hidden;margin-bottom:10px;}
+.tabs button{flex:1;border:none;border-right:1px solid var(--bdr2);border-radius:0;background:var(--surf2);color:var(--dim);font-size:13px;padding:9px 6px;}
+.tabs button:last-child{border-right:none;}
+.tabs button.on{background:#fff;color:var(--red);box-shadow:inset 0 -3px 0 var(--red);}
+.cards{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.cards span{font-size:12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:2px 9px;}
+.cards span b{color:var(--dim2);font-weight:700;}
+progress{width:100%;height:8px;margin-top:8px;accent-color:var(--red);}
+#cam{position:relative;background:#000;border-radius:var(--r);overflow:hidden;margin:6px auto 10px;display:none;max-width:520px;}
+#cam.on{display:block;}
+#video{display:block;width:100%;height:100%;object-fit:contain;background:#000;}
+#guide{position:absolute;border:3px dashed rgba(255,255,255,.9);border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.38);pointer-events:none;transition:border-color .15s;}
+#cam.still #guide{border-color:#facc15;}
+#cam.armed-ok #guide{border-color:#4ade80;}
+#cam-state{position:absolute;left:8px;bottom:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;}
+#cam-state span{background:rgba(0,0,0,.62);color:#fff;font-size:12px;border-radius:10px;padding:2px 9px;}
+#cam-state span.ok{background:rgba(21,128,61,.85);}
+#prompt{display:none;gap:12px;align-items:center;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px;margin:8px 0;}
+#prompt.on{display:flex;}
+#prompt img{width:62px;height:87px;object-fit:cover;border-radius:5px;background:var(--surf3);flex:none;}
+#prompt .ph{font-size:12px;font-weight:800;color:var(--red);}
+#prompt .nm{font-size:18px;font-weight:800;line-height:1.2;}
+#prompt .sb{font-size:12px;color:var(--dim);}
+#feedback{display:none;border-radius:var(--r);padding:9px 12px;margin:6px 0;font-size:14px;font-weight:700;}
+#feedback.on{display:block;}
+#feedback.ok{background:#dcfce7;color:#14532d;}
+#feedback.ko{background:#fee2e2;color:#7f1d1d;}
+#feedback.learn{background:#e0e7ff;color:#1e3a8a;}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+th,td{padding:5px 6px;border-bottom:1px solid var(--bdr);text-align:left;vertical-align:top;}
+th{font-size:11px;color:var(--dim);font-weight:700;}
+td.ok{color:var(--green);font-weight:800;}td.ko{color:var(--red);font-weight:800;}
+.kpi{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;}
+.kpi div{flex:1;min-width:110px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:8px 10px;}
+.kpi b{display:block;font-size:22px;font-weight:900;}
+.kpi small{font-size:11px;color:var(--dim);}
+.verdict{border-radius:var(--r);padding:10px 12px;font-size:14px;margin-top:8px;border:1px solid var(--bdr);background:var(--surf2);}
+.verdict.good{background:#dcfce7;border-color:#86efac;color:#14532d;}
+.verdict.mid{background:#fef9c3;border-color:#fde047;color:#713f12;}
+.verdict.bad{background:#fee2e2;border-color:#fca5a5;color:#7f1d1d;}
+details.adv{margin-top:10px;font-size:13px;color:var(--dim);}
+details.adv summary{cursor:pointer;font-weight:700;}
+.adv .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:8px;}
+.adv .grid label{font-size:12px;color:var(--dim);}
+h3.res{font-size:14px;margin-top:14px;font-weight:800;}
+@media (max-width:520px){.adv .grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Banc d'essai de reconnaissance des cartes</h1>
+  <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien n'est envoyé : la caméra et les calculs restent dans votre navigateur.</p>
+</header>
+<main>
+
+<section class="step" id="st1">
+  <h2><span class="n">1</span>Les cartes à tester</h2>
+  <div class="sub">On prend quelques cartes d'un deck (par défaut 20) : ce sont celles que vous allez présenter devant la caméra.</div>
+  <div class="tabs" role="tablist">
+    <button type="button" id="tab-deck" class="on" role="tab" onclick="showTab('deck')">Lien de deck MarvelCDB</button>
+    <button type="button" id="tab-order" role="tab" onclick="showTab('order')">Commande de la machine</button>
+    <button type="button" id="tab-rand" role="tab" onclick="showTab('rand')">Au hasard</button>
+  </div>
+  <div id="pane-deck">
+    <label class="lbl" for="deck-link">Lien du deck (marvelcdb.com/decklist/view/… ou /deck/view/…)</label>
+    <div class="row"><input id="deck-link" type="text" placeholder="https://marvelcdb.com/decklist/view/…" autocomplete="off"><button type="button" class="pri" id="btn-deck" onclick="chooseFromDeck()">Prendre ces cartes</button></div>
+  </div>
+  <div id="pane-order" hidden>
+    <label class="lbl" for="order-json">Commande copiée depuis l'appli (Actions › Machine › Copier)</label>
+    <textarea id="order-json" placeholder='{"format":"machine-marvel/commande", …}'></textarea>
+    <div class="row" style="margin-top:8px"><button type="button" class="pri" id="btn-order" onclick="chooseFromOrder()">Prendre ces cartes</button></div>
+  </div>
+  <div id="pane-rand" hidden>
+    <div class="sub" style="margin:0 0 8px">Des cartes joueur du Core Set tirées au hasard (pratique si vous n'avez pas de lien sous la main).</div>
+    <div class="row"><button type="button" class="pri" id="btn-rand" onclick="chooseRandom()">Tirer des cartes</button></div>
+  </div>
+  <label class="lbl" for="n-cards">Nombre de cartes à tester</label>
+  <input id="n-cards" type="number" min="3" max="60" value="20" style="max-width:120px">
+  <div class="msg" id="st1-msg" role="status"></div>
+  <div class="cards" id="card-list"></div>
+</section>
+
+<section class="step" id="st2">
+  <h2><span class="n">2</span>Les images de référence</h2>
+  <div class="sub">Ce que le programme connaît d'avance pour reconnaître une carte. On peut tester les deux façons et les comparer.</div>
+  <label class="chk"><input type="checkbox" id="ref-mcdb" checked><span>Images officielles de MarvelCDB<small>Aucune préparation, mais elles sont en anglais (vos cartes sont peut-être en français : même illustration, texte différent) et sans sleeve.</small></span></label>
+  <label class="chk"><input type="checkbox" id="ref-own" checked><span>Mes cartes (apprentissage)<small>Vous montrez chaque carte une fois à la caméra, puis on la reconnaît à nouveau : mêmes cartes, même sleeve, même éclairage, donc la meilleure situation possible.</small></span></label>
+  <div class="row" style="align-items:center"><label class="lbl" for="n-decoys" style="margin:0">Cartes « leurres » :</label>
+    <select id="n-decoys" style="max-width:230px"><option value="0">aucune</option><option value="60" selected>60 (collection moyenne)</option><option value="200">200 (grosse collection)</option></select></div>
+  <div class="sub" style="margin:4px 0 0">Des images de cartes au hasard ajoutées aux références, pour voir si le programme se trompe quand il y a beaucoup de cartes possibles (en images MarvelCDB uniquement).</div>
+  <div class="ctl"><button type="button" class="pri" id="btn-refs" onclick="prepareRefs()" disabled>Préparer les références</button><button type="button" id="btn-blank" onclick="blankTest()" disabled>Essai à blanc (sans caméra)</button></div>
+  <progress id="refs-progress" value="0" max="1" hidden></progress>
+  <div class="msg" id="refs-msg" role="status"></div>
+  <div id="blank-out"></div>
+</section>
+
+<section class="step" id="st3">
+  <h2><span class="n">3</span>Le test avec la caméra</h2>
+  <div class="sub">Posez le téléphone sur un support (ou tenez-le fixe) au-dessus d'un tapis uni, la carte à plat dans le cadre. On vous demande une carte à la fois : présentez-la, retirez-la, présentez la suivante.</div>
+  <div class="ctl"><button type="button" class="pri" id="btn-cam" onclick="startCamera()">Démarrer la caméra</button><button type="button" id="btn-switch" onclick="switchCamera()" disabled>Autre caméra</button></div>
+  <div id="cam"><video id="video" playsinline muted></video><div id="guide"></div><div id="cam-state"></div></div>
+  <div class="msg" id="cam-msg" role="status"></div>
+  <div id="prompt"><img id="p-img" alt=""><div><div class="ph" id="p-phase"></div><div class="nm" id="p-name"></div><div class="sb" id="p-sub"></div></div></div>
+  <div id="feedback" role="status" aria-live="polite"></div>
+  <div class="ctl">
+    <button type="button" class="pri" id="btn-start" onclick="startTest()" disabled>Lancer le test</button>
+    <button type="button" id="btn-snap" onclick="snapNow()" disabled>Capturer maintenant</button>
+    <button type="button" id="btn-skip" onclick="skipCard()" disabled>Passer cette carte</button>
+    <button type="button" id="btn-stop" onclick="stopTest(true)" disabled>Arrêter</button>
+  </div>
+  <details class="adv"><summary>Réglages de la détection automatique</summary>
+    <div class="grid">
+      <div><label for="set-still">Immobilité (plus petit = plus exigeant) : <b id="v-still">4</b></label><input id="set-still" type="range" min="1" max="12" value="4"></div>
+      <div><label for="set-frames">Images immobiles avant capture : <b id="v-frames">5</b></label><input id="set-frames" type="range" min="2" max="14" value="5"></div>
+      <div><label for="set-leave">Seuil « carte retirée » : <b id="v-leave">14</b></label><input id="set-leave" type="range" min="4" max="40" value="14"></div>
+      <div><label for="set-guide">Taille du cadre : <b id="v-guide">78</b> %</label><input id="set-guide" type="range" min="50" max="92" value="78"></div>
+    </div>
+  </details>
+</section>
+
+<section class="step" id="st4">
+  <h2><span class="n">4</span>Les résultats</h2>
+  <div class="sub">Le test est fait quand toutes les cartes ont été présentées. Copiez ou téléchargez les résultats pour me les envoyer : je m'en sers pour améliorer la méthode.</div>
+  <div id="summary"><div class="msg">Pas encore de résultat.</div></div>
+  <div class="ctl"><button type="button" id="btn-copy" onclick="copyResults()" disabled>Copier les résultats</button><button type="button" id="btn-dl" onclick="downloadResults()" disabled>Télécharger (.json)</button></div>
+</section>
+
+</main>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════════════
+// OUTILS
+// ═══════════════════════════════════════════════════════════════════════════
+const MCDB='https://marvelcdb.com';
+// Seules les cartes « portrait » sont testées : le cadre de la caméra est vertical (les complots sont à l'horizontale).
+const PORTRAIT=['ally','event','resource','support','upgrade','attachment','minion','treachery','environment','obligation'];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function msg(id,text,kind){const el=$(id);el.className='msg'+(kind?' '+kind:'');el.textContent=text;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const imgUrl=c=>String(c.imagesrc).startsWith('http')?c.imagesrc:MCDB+c.imagesrc;
+function showTab(t){
+  ['deck','order','rand'].forEach(k=>{$('pane-'+k).hidden=k!==t;$('tab-'+k).classList.toggle('on',k===t);});
+}
+
+// État du banc
+const B={
+  cards:[],            // cartes à tester : {code,name,pack,img,qty}
+  decoys:[],           // cartes « leurres » (images MarvelCDB)
+  refs:{mcdb:new Map(),own:new Map()},   // code → {desc,name}
+  refCanvas:new Map(), // code → canvas de l'image MarvelCDB (pour l'essai à blanc)
+  corsBlocked:false,
+  stream:null,devices:[],devIdx:0,
+  test:null,           // {queue,qi,trials,startedAt}
+  armed:false,still:0,lastSmall:null,lastCapAt:0,
+  guide:{x:0,y:0,w:0,h:0},
+  audio:null
+};
+let catalog=null,byCode=new Map();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MARVELCDB (catalogue, decks)
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadCatalog(){
+  if(catalog)return catalog;
+  const res=await fetch(MCDB+'/api/public/cards/');
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  catalog=await res.json();
+  byCode=new Map(catalog.map(c=>[c.code,c]));
+  return catalog;
+}
+function parseDeckLink(raw){
+  const s=String(raw||'').trim();
+  const m=s.match(/marvelcdb\.com\/(decklist|deck)\/view\/(\d+)/i)||s.match(/\b(decklist|deck)\/view\/(\d+)/i);
+  if(m)return{kind:m[1].toLowerCase(),id:m[2]};
+  if(/^\d{1,9}$/.test(s))return{kind:'decklist',id:s};
+  return null;
+}
+async function fetchDeck(link){
+  let res;
+  try{res=await fetch(MCDB+'/api/public/'+link.kind+'/'+link.id+'.json');}catch(e){throw new Error('MarvelCDB est injoignable : vérifiez la connexion.');}
+  if(!res.ok){
+    if(link.kind==='deck'&&(res.status===403||res.status===404))throw new Error('Deck non partagé (ou inexistant) : activez le partage de vos decks dans votre profil MarvelCDB, ou publiez le deck.');
+    throw new Error(res.status===404?'Deck introuvable : vérifiez le lien.':'Impossible de lire ce deck (HTTP '+res.status+').');
+  }
+  const data=await res.json();
+  if(!data||!data.slots||!Object.keys(data.slots).length)throw new Error('Ce deck est vide.');
+  return data;
+}
+// Choisit au hasard n cartes « portrait » distinctes parmi une liste {code,qty}.
+function pickCards(list,n){
+  const seen=new Set(),out=[];
+  list.forEach(({code,qty})=>{
+    const c=byCode.get(code);
+    if(!c||seen.has(code)||c.hidden||!c.imagesrc||!PORTRAIT.includes(c.type_code))return;
+    seen.add(code);out.push({code,name:c.name,pack:c.pack_name||'',img:imgUrl(c),qty:qty||1});
+  });
+  shuffle(out);
+  return out.slice(0,n);
+}
+function nWanted(){return Math.max(3,Math.min(60,parseInt($('n-cards').value,10)||20));}
+function setCards(cards,label){
+  B.cards=cards;
+  B.refs={mcdb:new Map(),own:new Map()};B.refCanvas=new Map();
+  $('card-list').innerHTML=cards.map(c=>`<span>${esc(c.name)}${c.qty>1?` <b>×${c.qty}</b>`:''}</span>`).join('');
+  msg('st1-msg',cards.length?`${cards.length} carte${cards.length>1?'s':''} à tester ${label?'('+label+')':''}. Il vous faudra ces cartes sous la main, avec leur sleeve.`:'Aucune carte utilisable (cartes « portrait » seulement : alliés, événements, ressources, soutiens, améliorations…).',cards.length?'ok':'err');
+  $('btn-refs').disabled=!cards.length;
+  $('btn-blank').disabled=true;
+  updateStartButton();
+}
+async function chooseFromDeck(){
+  const link=parseDeckLink($('deck-link').value);
+  if(!link){msg('st1-msg','Lien non reconnu : il doit ressembler à marvelcdb.com/decklist/view/… ou marvelcdb.com/deck/view/…','err');return;}
+  msg('st1-msg','Lecture du deck sur MarvelCDB…');
+  try{
+    const [data]=await Promise.all([fetchDeck(link),loadCatalog()]);
+    setCards(pickCards(Object.keys(data.slots).map(code=>({code,qty:data.slots[code]})),nWanted()),data.name||'deck');
+  }catch(e){msg('st1-msg',e.message||String(e),'err');}
+}
+async function chooseFromOrder(){
+  let o;
+  try{o=JSON.parse($('order-json').value);}catch(e){msg('st1-msg','Ce texte n’est pas une commande valide (JSON).','err');return;}
+  const list=[];
+  ((o&&o.parties)||[]).forEach(p=>(p.cartes||[]).forEach(c=>{if(c&&c.code)list.push({code:c.code,qty:c.qte||1});}));
+  if(!list.length){msg('st1-msg','Aucune carte trouvée dans cette commande.','err');return;}
+  msg('st1-msg','Lecture du catalogue MarvelCDB…');
+  try{await loadCatalog();setCards(pickCards(list,nWanted()),o.nom||'commande');}
+  catch(e){msg('st1-msg','MarvelCDB est injoignable : vérifiez la connexion.','err');}
+}
+async function chooseRandom(){
+  msg('st1-msg','Lecture du catalogue MarvelCDB…');
+  try{
+    await loadCatalog();
+    const core=catalog.filter(c=>c.pack_code==='core'&&c.faction_code!=='encounter'&&c.faction_code!=='hero').map(c=>({code:c.code,qty:1}));
+    setCards(pickCards(core,nWanted()),'Core Set, au hasard');
+  }catch(e){msg('st1-msg','MarvelCDB est injoignable : vérifiez la connexion.','err');}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECONNAISSANCE : description d'une image, ressemblance, classement
+// Méthode volontairement simple (premier jet) : on compare des « empreintes » de l'illustration (luminosité
+// en grille, couleurs dominantes, couleur du cadre). Si elle ne suffit pas, on passera à des points
+// caractéristiques (ORB) ; ce banc sert justement à le savoir.
+// ═══════════════════════════════════════════════════════
+const W0=96,H0=134;                     // taille de travail d'une carte (rapport 63 × 88)
+const GX=16,GY=13,AX0=.06,AX1=.94,AY0=.09,AY1=.70; // grille de luminosité sur l'illustration (sans titre ni texte)
+const work=document.createElement('canvas');work.width=W0;work.height=H0;
+const wctx=work.getContext('2d',{willReadFrequently:true});
+function normalizeVec(v){
+  let m=0;for(let i=0;i<v.length;i++)m+=v[i];m/=v.length;
+  let s=0;for(let i=0;i<v.length;i++){const d=v[i]-m;s+=d*d;}
+  s=Math.sqrt(s/v.length);
+  if(s<1e-3){v.fill(0);return v;}
+  for(let i=0;i<v.length;i++)v[i]=(v[i]-m)/s;
+  return v;
+}
+// src : canvas / image / vidéo ; (sx,sy,sw,sh) : zone à décrire (toute la source si omis).
+function describe(src,sx,sy,sw,sh){
+  wctx.fillStyle='#808080';wctx.fillRect(0,0,W0,H0);
+  if(sw==null)wctx.drawImage(src,0,0,W0,H0);else wctx.drawImage(src,sx,sy,sw,sh,0,0,W0,H0);
+  const d=wctx.getImageData(0,0,W0,H0).data;
+  const Y=new Float32Array(W0*H0);
+  for(let i=0,j=0;i<d.length;i+=4,j++)Y[j]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+  const xs=[],ys=[];
+  for(let i=0;i<=GX;i++)xs.push(Math.round((AX0+(AX1-AX0)*i/GX)*W0));
+  for(let i=0;i<=GY;i++)ys.push(Math.round((AY0+(AY1-AY0)*i/GY)*H0));
+  const L=new Float32Array(GX*GY);
+  for(let gy=0;gy<GY;gy++)for(let gx=0;gx<GX;gx++){
+    let s=0,n=0;
+    for(let y=ys[gy];y<ys[gy+1];y++)for(let x=xs[gx];x<xs[gx+1];x++){s+=Y[y*W0+x];n++;}
+    L[gy*GX+gx]=n?s/n:0;
+  }
+  normalizeVec(L);
+  // couleurs : 12 teintes × 2 saturations + 3 niveaux de gris, sur l'illustration
+  const H=new Float32Array(27);let cnt=0;
+  for(let y=ys[0];y<ys[GY];y+=2)for(let x=xs[0];x<xs[GX];x+=2){
+    const k=(y*W0+x)*4,r=d[k]/255,g=d[k+1]/255,b=d[k+2]/255;
+    const mx=Math.max(r,g,b),mn=Math.min(r,g,b),df=mx-mn,s=mx?df/mx:0;
+    if(s<.22){H[24+(mx<.33?0:mx<.66?1:2)]++;}
+    else{
+      let h;
+      if(mx===r)h=((g-b)/df+6)%6;else if(mx===g)h=(b-r)/df+2;else h=(r-g)/df+4;
+      H[Math.min(11,Math.floor(h*2))*2+(s<.55?0:1)]++;
+    }
+    cnt++;
+  }
+  if(cnt)for(let i=0;i<27;i++)H[i]/=cnt;
+  // couleur du cadre (anneau autour de la carte, sans le tout dernier bord : sleeve, reflets)
+  let fr=0,fg=0,fb=0,fn=0;
+  const m0=Math.round(.015*W0),m1=Math.round(.06*W0),n0=Math.round(.012*H0),n1=Math.round(.05*H0);
+  for(let y=n0;y<H0-n0;y++)for(let x=m0;x<W0-m0;x++){
+    if(x<m1||x>=W0-m1||y<n1||y>=H0-n1){const k=(y*W0+x)*4;fr+=d[k];fg+=d[k+1];fb+=d[k+2];fn++;}
+  }
+  const tot=fr+fg+fb+1;
+  return{L,H,F:[fr/tot,fg/tot,fb/tot]};
+}
+// Ressemblance entre une capture (a) et une référence (b) : 0 (rien à voir) … 1 (identique).
+function sim(a,b){
+  const n=a.L.length;
+  let d1=0,d2=0;
+  for(let i=0;i<n;i++){d1+=a.L[i]*b.L[i];d2+=a.L[i]*b.L[n-1-i];}   // d2 : carte présentée à l'envers
+  const zncc=Math.max(0,d1/n,(d2/n)-.01);
+  let hi=0;for(let i=0;i<27;i++)hi+=Math.min(a.H[i],b.H[i]);
+  const dc=(a.F[0]-b.F[0])**2+(a.F[1]-b.F[1])**2+(a.F[2]-b.F[2])**2;
+  return .55*zncc+.30*hi+.15*Math.exp(-dc/(2*.07*.07));
+}
+// Classe les références pour une capture (plusieurs variantes de cadrage : on garde la meilleure).
+function rank(variants,refs){
+  const out=[];
+  refs.forEach((ref,code)=>{
+    let best=-1;
+    for(const v of variants){const s=sim(v,ref.desc);if(s>best)best=s;}
+    out.push({code,score:best,name:ref.name,decoy:!!ref.decoy});
+  });
+  out.sort((x,y)=>y.score-x.score);
+  return out;
+}
+// Variantes de cadrage d'une capture large (300 × 420 = la carte + 6 % de marge de chaque côté).
+function variantsOf(big){
+  const cw=big.width/1.12,ch=big.height/1.12,x0=(big.width-cw)/2,y0=(big.height-ch)/2,dx=.03*cw,dy=.03*ch;
+  return[[0,0],[dx,0],[-dx,0],[0,dy],[0,-dy]].map(([ox,oy])=>describe(big,x0+ox,y0+oy,cw,ch));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RÉFÉRENCES
+// ═══════════════════════════════════════════════════════════════════════════
+function loadImage(url,cors){
+  return new Promise((res,rej)=>{
+    const im=new Image();
+    if(cors)im.crossOrigin='anonymous';
+    im.onload=()=>res(im);im.onerror=()=>rej(new Error('image'));
+    im.src=url;
+  });
+}
+function toCanvas(im,maxW){
+  const w=Math.min(maxW||252,im.naturalWidth||im.width),h=Math.round(w*(im.naturalHeight||im.height)/(im.naturalWidth||im.width));
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  c.getContext('2d').drawImage(im,0,0,w,h);
+  return c;
+}
+async function prepareRefs(){
+  if(!B.cards.length)return;
+  $('btn-refs').disabled=true;$('btn-blank').disabled=true;
+  const wantM=$('ref-mcdb').checked,wantO=$('ref-own').checked;
+  B.refs.mcdb=new Map();B.refs.own=new Map();B.refCanvas=new Map();B.corsBlocked=false;
+  if(!wantM&&!wantO){msg('refs-msg','Cochez au moins une façon de préparer les références.','err');$('btn-refs').disabled=false;return;}
+  let text='';
+  if(wantM){
+    try{await loadCatalog();}catch(e){msg('refs-msg','MarvelCDB est injoignable : vérifiez la connexion.','err');$('btn-refs').disabled=false;return;}
+    // leurres : cartes « portrait » au hasard, hors des cartes à tester
+    const nd=parseInt($('n-decoys').value,10)||0,taken=new Set(B.cards.map(c=>c.code));
+    const pool=catalog.filter(c=>!taken.has(c.code)&&!c.hidden&&!c.duplicate_of_code&&c.imagesrc&&PORTRAIT.includes(c.type_code));
+    B.decoys=shuffle(pool).slice(0,nd).map(c=>({code:c.code,name:c.name,img:imgUrl(c),decoy:true}));
+    const all=B.cards.concat(B.decoys);
+    const prog=$('refs-progress');prog.hidden=false;prog.max=all.length;prog.value=0;
+    msg('refs-msg','Téléchargement des images MarvelCDB…');
+    let done=0,fail=0,checked=false;
+    const queue=all.slice();
+    const worker=async()=>{
+      while(queue.length){
+        const c=queue.shift();
+        try{
+          const im=await loadImage(c.img,true),cv=toCanvas(im);
+          B.refs.mcdb.set(c.code,{desc:describe(cv),name:c.name,decoy:!!c.decoy});
+          if(!c.decoy)B.refCanvas.set(c.code,cv);
+        }catch(e){
+          fail++;
+          if(!checked){checked=true;try{await loadImage(c.img,false);B.corsBlocked=true;}catch(_){}}
+        }
+        prog.value=++done;
+      }
+    };
+    await Promise.all([worker(),worker(),worker(),worker()]);
+    prog.hidden=true;
+    if(B.corsBlocked&&B.refs.mcdb.size===0){
+      text='MarvelCDB n’autorise pas la lecture de ses images par une page web (réglage de leur serveur) : la méthode « images MarvelCDB » est impossible ici. Utilisez « Mes cartes (apprentissage) ». Côté machine, le Raspberry Pi pourra, lui, télécharger ces images sans cette restriction.';
+      $('ref-mcdb').checked=false;
+    }else if(!B.refs.mcdb.size){text='Aucune image MarvelCDB n’a pu être lue (réseau ?).';}
+    else text=`${B.refs.mcdb.size} image${B.refs.mcdb.size>1?'s':''} MarvelCDB lue${B.refs.mcdb.size>1?'s':''}${fail?` (${fail} échec${fail>1?'s':''})`:''}${B.decoys.length?`, dont ${B.decoys.length} leurre${B.decoys.length>1?'s':''}`:''}. `;
+  }
+  if(wantO)text+=(text?' ':'')+'Apprentissage avec vos cartes : il aura lieu au début du test (étape 3).';
+  msg('refs-msg',text.trim(),(wantM&&B.refs.mcdb.size)||wantO?'ok':'err');
+  $('btn-refs').disabled=false;
+  $('btn-blank').disabled=!B.refs.mcdb.size;
+  updateStartButton();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ESSAI À BLANC : fausses captures (image MarvelCDB abîmée : lumière, flou, bruit, reflet, léger décalage)
+// pour vérifier que le programme marche, sans caméra.
+// ═══════════════════════════════════════════════════════════════════════════
+function rnd(a,b){return a+Math.random()*(b-a);}
+function perturb(src,level){
+  const P={light:{br:.1,bl:0,sh:.015,rot:1,no:3,gl:0},medium:{br:.25,bl:1,sh:.03,rot:3,no:6,gl:.5},heavy:{br:.4,bl:2,sh:.05,rot:6,no:10,gl:1}}[level];
+  const W=300,H=420,c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d',{willReadFrequently:true});
+  x.fillStyle='#777';x.fillRect(0,0,W,H);
+  x.save();
+  x.translate(W/2+rnd(-P.sh,P.sh)*W,H/2+rnd(-P.sh,P.sh)*H);
+  x.rotate(rnd(-P.rot,P.rot)*Math.PI/180);
+  const cw=W/1.12,ch=H/1.12;
+  x.drawImage(src,-cw/2,-ch/2,cw,ch);
+  x.restore();
+  if(P.bl){  // flou : on réduit puis on agrandit
+    const t=document.createElement('canvas');t.width=Math.round(W/(1+P.bl*1.6));t.height=Math.round(H/(1+P.bl*1.6));
+    t.getContext('2d').drawImage(c,0,0,t.width,t.height);x.drawImage(t,0,0,W,H);
+  }
+  if(P.gl&&Math.random()<P.gl){  // reflet du sleeve : tache lumineuse
+    const gx=rnd(.2,.8)*W,gy=rnd(.2,.8)*H,g=x.createRadialGradient(gx,gy,0,gx,gy,rnd(.15,.35)*W);
+    g.addColorStop(0,`rgba(255,255,255,${rnd(.5,.9)})`);g.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle=g;x.fillRect(0,0,W,H);
+  }
+  const img=x.getImageData(0,0,W,H),d=img.data,k=1+rnd(-P.br,P.br),off=rnd(-P.br,P.br)*60;
+  for(let i=0;i<d.length;i+=4){const n=(Math.random()+Math.random()+Math.random()-1.5)*P.no*2;for(let j=0;j<3;j++)d[i+j]=Math.max(0,Math.min(255,d[i+j]*k+off+n));}
+  x.putImageData(img,0,0);
+  return c;
+}
+async function blankTest(){
+  if(!B.refs.mcdb.size)return;
+  $('btn-blank').disabled=true;
+  const out=[];
+  for(const level of['light','medium','heavy']){
+    let ok1=0,ok3=0,n=0;
+    for(const c of B.cards){
+      const cv=B.refCanvas.get(c.code);if(!cv)continue;
+      for(let rep=0;rep<3;rep++){
+        const r=rank(variantsOf(perturb(cv,level)),B.refs.mcdb),idx=r.findIndex(x=>x.code===c.code);
+        n++;if(idx===0)ok1++;if(idx>=0&&idx<3)ok3++;
+      }
+      if(n%12===0)await sleep(0);
+    }
+    out.push({level,n,acc1:n?ok1/n:0,acc3:n?ok3/n:0});
+  }
+  const names={light:'léger (petit décalage, lumière un peu différente)',medium:'moyen (flou, reflet, bruit, léger angle)',heavy:'difficile (fort reflet, flou, angle, lumière très différente)'};
+  $('blank-out').innerHTML='<h3 class="res">Essai à blanc (images MarvelCDB abîmées)</h3><table><tr><th>Conditions</th><th>Bon du 1ᵉʳ coup</th><th>Dans les 3 premiers</th></tr>'+out.map(o=>`<tr><td>${esc(names[o.level])}</td><td class="${o.acc1>=.98?'ok':o.acc1<.9?'ko':''}">${pct(o.acc1)}</td><td>${pct(o.acc3)}</td></tr>`).join('')+'</table><div class="msg">Cet essai vérifie que le programme fonctionne ; la vraie réponse vient du test avec la caméra (étape 3).</div>';
+  B.blank=out;
+  $('btn-blank').disabled=false;
+}
+const pct=x=>(Math.round(x*1000)/10).toString().replace('.',',')+' %';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CAMÉRA
+// ═══════════════════════════════════════════════════════════════════════════
+const small=document.createElement('canvas');small.width=32;small.height=45;
+const sctx=small.getContext('2d',{willReadFrequently:true});
+const big=document.createElement('canvas');big.width=300;big.height=420;
+const bctx=big.getContext('2d',{willReadFrequently:true});
+let loopTimer=null;
+function camError(e){
+  const n=e&&e.name;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return'Ce navigateur ne donne pas accès à la caméra à cette page : ouvrez-la depuis un fichier de votre ordinateur ou depuis une adresse https.';
+  if(n==='NotAllowedError'||n==='SecurityError')return'Accès à la caméra refusé : autorisez la caméra pour cette page dans le navigateur, puis recommencez.';
+  if(n==='NotFoundError')return'Aucune caméra trouvée.';
+  if(n==='NotReadableError')return'La caméra est utilisée par une autre application.';
+  return'Impossible de démarrer la caméra'+(e&&e.message?' ('+e.message+')':'')+'.';
+}
+async function startCamera(deviceId){
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('none');
+    stopStream();
+    const v={width:{ideal:1280},height:{ideal:720}};
+    if(typeof deviceId==='string')v.deviceId={exact:deviceId};else v.facingMode='environment';
+    B.stream=await navigator.mediaDevices.getUserMedia({video:v,audio:false});
+    const video=$('video');video.srcObject=B.stream;
+    await video.play();
+    await new Promise(r=>{if(video.videoWidth)r();else video.onloadedmetadata=()=>r();});
+    try{const all=await navigator.mediaDevices.enumerateDevices();B.devices=all.filter(d=>d.kind==='videoinput');}catch(_){}
+    $('btn-switch').disabled=B.devices.length<2;
+    $('cam').classList.add('on');
+    keepAwake(true);
+    layoutGuide();
+    msg('cam-msg',`Caméra prête (${video.videoWidth}×${video.videoHeight}).`,'ok');
+    updateStartButton();
+    $('btn-snap').disabled=false;
+    startLoop();
+  }catch(e){msg('cam-msg',camError(e),'err');}
+}
+function stopStream(){
+  clearInterval(loopTimer);loopTimer=null;
+  if(B.stream){B.stream.getTracks().forEach(t=>t.stop());B.stream=null;}
+  keepAwake(false);
+}
+// Garde l'écran allumé tant que la caméra tourne (sinon le téléphone s'éteint en plein test).
+let wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(!on){const w=wakeLock;wakeLock=null;if(w)await w.release();return;}
+    if(wakeLock||!navigator.wakeLock)return;
+    const w=await navigator.wakeLock.request('screen');
+    wakeLock=w;w.addEventListener('release',()=>{if(wakeLock===w)wakeLock=null;});
+  }catch(_){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&B.stream)keepAwake(true);});
+async function switchCamera(){
+  if(B.devices.length<2)return;
+  B.devIdx=(B.devIdx+1)%B.devices.length;
+  await startCamera(B.devices[B.devIdx].deviceId);
+}
+// Cadre de guidage : un rectangle vertical (rapport d'une carte) centré, dont la taille se règle.
+function layoutGuide(){
+  const video=$('video'),vw=video.videoWidth,vh=video.videoHeight;
+  if(!vw||!vh)return;
+  const size=(parseInt($('set-guide').value,10)||78)/100;
+  let gh=size*vh,gw=gh*63/88;
+  if(gw>.9*vw){gw=.9*vw;gh=gw*88/63;}
+  B.guide={x:(vw-gw)/2,y:(vh-gh)/2,w:gw,h:gh};
+  $('cam').style.aspectRatio=vw+' / '+vh;
+  // Image verticale sur un téléphone : on borne la largeur (donc aussi la hauteur, le rapport est gardé) pour que l'image et l'invite tiennent ensemble à l'écran.
+  $('cam').style.maxWidth=Math.round(Math.min(520,Math.max(220,window.innerHeight*.62*vw/vh)))+'px';
+  const g=$('guide').style;
+  g.left=(B.guide.x/vw*100)+'%';g.top=(B.guide.y/vh*100)+'%';g.width=(B.guide.w/vw*100)+'%';g.height=(B.guide.h/vh*100)+'%';
+}
+window.addEventListener('resize',layoutGuide);
+// Surveille l'image : carte immobile et présente → capture automatique.
+function startLoop(){
+  clearInterval(loopTimer);
+  B.still=0;B.lastSmall=null;
+  loopTimer=setInterval(tick,130);
+}
+function grabSmall(){
+  const g=B.guide,video=$('video');
+  sctx.drawImage(video,g.x,g.y,g.w,g.h,0,0,32,45);
+  const d=sctx.getImageData(0,0,32,45).data,Y=new Float32Array(32*45);
+  for(let i=0,j=0;i<d.length;i+=4,j++)Y[j]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+  return Y;
+}
+const meanAbsDiff=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length;};
+function stdev(a){let m=0;for(let i=0;i<a.length;i++)m+=a[i];m/=a.length;let s=0;for(let i=0;i<a.length;i++){const d=a[i]-m;s+=d*d;}return Math.sqrt(s/a.length);}
+function setChips(items){$('cam-state').innerHTML=items.map(([t,ok])=>`<span class="${ok?'ok':''}">${esc(t)}</span>`).join('');}
+function tick(){
+  const video=$('video');
+  if(!B.stream||video.readyState<2||!B.guide.w)return;
+  const cur=grabSmall(),T={still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value};
+  const motion=B.lastSmall?meanAbsDiff(cur,B.lastSmall):99,tex=stdev(cur);
+  B.lastSmall=cur;
+  const cam=$('cam');
+  const stillNow=motion<T.still;
+  B.still=stillNow?B.still+1:0;
+  cam.classList.toggle('still',stillNow);
+  if(!B.test){setChips([[stillNow?'image stable':'ça bouge',stillNow],[tex>10?'carte ou motif détecté':'cadre uni',tex>10]]);cam.classList.remove('armed-ok');return;}
+  // La carte précédente doit d'abord quitter le cadre (ou être remplacée) avant d'en accepter une nouvelle.
+  if(!B.armed){
+    const sinceCap=Date.now()-B.lastCapAt;
+    const diff=B.capSmall?meanAbsDiff(cur,B.capSmall):99;
+    if(diff>T.leave||sinceCap>9000){B.armed=true;B.still=0;}
+    setChips([['retirez la carte',false]]);cam.classList.remove('armed-ok');
+    return;
+  }
+  cam.classList.toggle('armed-ok',B.still>=T.frames&&tex>10);
+  setChips([[stillNow?'image stable':'ça bouge',stillNow],[tex>10?'carte détectée':'cadre uni',tex>10],['présentez la carte',false]]);
+  if(B.still>=T.frames&&tex>10)capture();
+}
+function capture(){
+  const g=B.guide,video=$('video'),mx=g.w*.06,my=g.h*.06;
+  bctx.fillStyle='#777';bctx.fillRect(0,0,300,420);
+  bctx.drawImage(video,g.x-mx,g.y-my,g.w+2*mx,g.h+2*my,0,0,300,420);
+  B.capSmall=B.lastSmall;B.lastCapAt=Date.now();B.armed=false;B.still=0;
+  handleCapture(big);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROTOCOLE DU TEST : apprentissage (si demandé), puis test dans le désordre
+// ═══════════════════════════════════════════════════════════════════════════
+function updateStartButton(){
+  // Si les images MarvelCDB sont demandées, elles doivent être prêtes ; l'apprentissage, lui, se fait pendant le test.
+  const needM=$('ref-mcdb').checked,readyM=!needM||B.refs.mcdb.size>0;
+  const ready=B.cards.length&&B.stream&&readyM&&($('ref-own').checked||B.refs.mcdb.size>0);
+  $('btn-start').disabled=!ready||!!B.test;
+}
+function beep(ok){
+  try{
+    if(!B.audio)B.audio=new (window.AudioContext||window.webkitAudioContext)();
+    const a=B.audio,o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';
+    const t=a.currentTime;
+    o.frequency.setValueAtTime(ok?880:330,t);if(!ok)o.frequency.setValueAtTime(260,t+.12);
+    g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+(ok?.18:.32));
+    o.start(t);o.stop(t+.34);
+  }catch(_){}
+  if(navigator.vibrate)try{navigator.vibrate(ok?40:[60,50,60]);}catch(_){}
+}
+function startTest(){
+  if(!B.cards.length||!B.stream)return;
+  const learn=$('ref-own').checked;
+  const queue=[];
+  if(learn){B.refs.own=new Map();B.cards.forEach(c=>queue.push({card:c,phase:'learn'}));}
+  shuffle(B.cards.slice()).forEach(c=>queue.push({card:c,phase:'test'}));
+  try{B.audio=B.audio||new (window.AudioContext||window.webkitAudioContext)();B.audio.resume();}catch(_){}  // le son demande un geste de l'utilisateur
+  B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0};
+  B.armed=true;B.still=0;B.capSmall=null;
+  $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;
+  $('feedback').className='';
+  $('summary').innerHTML='<div class="msg">Test en cours…</div>';
+  $('btn-copy').disabled=true;$('btn-dl').disabled=true;
+  showPrompt();
+  $('cam').scrollIntoView({block:'center',behavior:'smooth'});
+}
+function showPrompt(){
+  const t=B.test,item=t.queue[t.qi];
+  const nTest=t.queue.filter(q=>q.phase==='test').length,nLearn=t.queue.length-nTest;
+  $('prompt').classList.add('on');
+  $('p-img').src=item.card.img;
+  $('p-phase').textContent=item.phase==='learn'?`APPRENTISSAGE ${t.qi+1} / ${nLearn}`:`TEST ${t.qi-nLearn+1} / ${nTest}`;
+  $('p-name').textContent=item.card.name;
+  $('p-sub').textContent=(item.card.pack?item.card.pack+' · ':'')+(item.phase==='learn'?'montrez-la une première fois : on mémorise son aspect':'présentez-la comme si la machine vous la rendait');
+}
+function snapNow(){
+  if(!B.stream||!B.guide.w)return;
+  if(B.test){capture();return;}
+  // sans test en cours : simple aperçu de ce que la méthode « voit » (classement parmi les références prêtes)
+  const g=B.guide,video=$('video'),mx=g.w*.06,my=g.h*.06;
+  bctx.drawImage(video,g.x-mx,g.y-my,g.w+2*mx,g.h+2*my,0,0,300,420);
+  const refs=B.refs.mcdb.size?B.refs.mcdb:B.refs.own;
+  if(!refs.size){setFeedback('Aucune référence prête : préparez-les d’abord (étape 2).','ko');return;}
+  const r=rank(variantsOf(big),refs).slice(0,3);
+  setFeedback('Je vois : '+r.map(x=>`${x.name} (${Math.round(x.score*100)} %)`).join(' · '),'learn');
+}
+function setFeedback(text,kind){const f=$('feedback');f.className='on '+kind;f.textContent=text;}
+function handleCapture(canvas){
+  const t=B.test;if(!t)return;
+  const item=t.queue[t.qi],t0=performance.now();
+  const variants=variantsOf(canvas);
+  if(item.phase==='learn'){
+    B.refs.own.set(item.card.code,{desc:variants[0],name:item.card.name});
+    setFeedback(`Mémorisée : ${item.card.name}. Retirez-la.`,'learn');beep(true);
+  }else{
+    const res=evaluate(variants,item.card.code);
+    const ms=Math.round(performance.now()-t0);
+    const main=res.mcdb||res.own;
+    const thumb=(main&&!main.ok1)?thumbOf(canvas):null;
+    t.trials.push({asked:item.card.code,name:item.card.name,ms,results:res,thumb});
+    if(!main){setFeedback('Carte ignorée (pas de référence).','ko');}
+    else{
+      const ok=main.ok1;
+      setFeedback((ok?'✓ Reconnue : ':'✗ Pas reconnue — ')+(ok?item.card.name:`j’ai vu « ${main.top[0].n} » au lieu de « ${item.card.name} »`)+` (confiance ${Math.round(main.score*100)} %)`,ok?'ok':'ko');
+      beep(ok);
+    }
+  }
+  t.qi++;
+  if(t.qi>=t.queue.length)finishTest();else showPrompt();
+}
+function thumbOf(canvas){
+  const c=document.createElement('canvas');c.width=64;c.height=90;
+  const cw=canvas.width/1.12,ch=canvas.height/1.12;
+  c.getContext('2d').drawImage(canvas,(canvas.width-cw)/2,(canvas.height-ch)/2,cw,ch,0,0,64,90);
+  return c.toDataURL('image/jpeg',.6);
+}
+function evaluate(variants,asked){
+  const res={};
+  for(const kind of['mcdb','own']){
+    const refs=B.refs[kind];
+    if(!refs||!refs.size||!refs.has(asked))continue;
+    const r=rank(variants,refs),idx=r.findIndex(x=>x.code===asked);
+    res[kind]={top:r.slice(0,3).map(x=>({c:x.code,n:x.name,s:+x.score.toFixed(3)})),rank:idx+1,ok1:idx===0,ok3:idx>=0&&idx<3,score:+r[0].score.toFixed(3),margin:+(r[0].score-(r[1]?r[1].score:0)).toFixed(3),pool:r.length};
+  }
+  return res;
+}
+function skipCard(){
+  const t=B.test;if(!t)return;
+  const item=t.queue[t.qi];
+  if(item.phase==='test'){t.trials.push({asked:item.card.code,name:item.card.name,skipped:true,results:{}});t.skipped++;}
+  t.qi++;B.armed=true;B.still=0;
+  if(t.qi>=t.queue.length)finishTest();else showPrompt();
+}
+function stopTest(user){
+  const t=B.test;if(!t)return;
+  B.test=null;
+  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;
+  updateStartButton();
+  if(user&&t.trials.length)summarize(t,true);
+  else if(user)$('summary').innerHTML='<div class="msg">Test arrêté avant la première carte.</div>';
+  B.last=t;
+}
+function finishTest(){
+  const t=B.test;
+  B.test=null;B.last=t;
+  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;
+  updateStartButton();
+  summarize(t,false);
+  beep(true);
+  $('st4').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RÉSULTATS
+// ═══════════════════════════════════════════════════════════════════════════
+function statsFor(trials,kind){
+  const rows=trials.filter(x=>x.results&&x.results[kind]).map(x=>Object.assign({asked:x.asked,name:x.name,ms:x.ms},x.results[kind]));
+  const n=rows.length;if(!n)return null;
+  const ok1=rows.filter(r=>r.ok1).length,ok3=rows.filter(r=>r.ok3).length;
+  const sorted=rows.slice().sort((a,b)=>b.margin-a.margin);
+  const cover=q=>{const k=Math.max(1,Math.round(n*q)),part=sorted.slice(0,k);return{coverage:k/n,precision:part.filter(r=>r.ok1).length/k,minMargin:part[part.length-1].margin};};
+  const ms=rows.map(r=>r.ms).sort((a,b)=>a-b);
+  return{kind,n,ok1,ok3,acc1:ok1/n,acc3:ok3/n,pool:rows[0].pool,medMs:ms[Math.floor(ms.length/2)],meanScoreOk:avg(rows.filter(r=>r.ok1).map(r=>r.score)),meanMarginOk:avg(rows.filter(r=>r.ok1).map(r=>r.margin)),c100:cover(1),c80:cover(.8),c60:cover(.6),errors:rows.filter(r=>!r.ok1).map(r=>({asked:r.name,got:r.top[0].n,score:r.score,margin:r.margin}))};
+}
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+function verdict(s){
+  if(!s)return'';
+  if(s.acc1>=.98)return`<div class="verdict good"><b>Très bon.</b> Avec cette méthode simple, ${pct(s.acc1)} des cartes sont reconnues du premier coup parmi ${s.pool} références. Une reprise des cartes sans caméra dans la machine est envisageable, à confirmer sur plus de cartes et plusieurs séances.</div>`;
+  if(s.acc1>=.9)return`<div class="verdict mid"><b>Prometteur, à renforcer.</b> ${pct(s.acc1)} du premier coup (${pct(s.acc3)} dans les 3 premiers). Un support fixe, un meilleur éclairage ou une méthode par points caractéristiques (ORB) devraient aider : à refaire après réglage.</div>`;
+  return`<div class="verdict bad"><b>Insuffisant avec cette méthode simple.</b> ${pct(s.acc1)} du premier coup seulement. Cela ne condamne pas l’idée : on peut essayer les points caractéristiques (ORB) ou un réseau de neurones, et améliorer la prise de vue.</div>`;
+}
+function summarize(t,partial){
+  const kinds=[['mcdb','Références MarvelCDB'],['own','Mes cartes (apprentissage)']];
+  let html='';
+  const all={};
+  kinds.forEach(([k,label])=>{
+    const s=statsFor(t.trials,k);all[k]=s;
+    if(!s)return;
+    html+=`<h3 class="res">${esc(label)}${partial?' (test interrompu)':''}</h3>
+      <div class="kpi"><div><b>${pct(s.acc1)}</b><small>reconnues du 1ᵉʳ coup (${s.ok1}/${s.n})</small></div><div><b>${pct(s.acc3)}</b><small>dans les 3 premières</small></div><div><b>${s.medMs} ms</b><small>temps de calcul médian</small></div><div><b>${s.pool}</b><small>références comparées</small></div></div>
+      ${verdict(s)}
+      <div class="msg">Si on n’acceptait que les reconnaissances les plus sûres (le programme demanderait à vérifier les autres) : ${pct(s.c80.precision)} de bonnes réponses sur les ${pct(s.c80.coverage)} les plus sûres, ${pct(s.c60.precision)} sur les ${pct(s.c60.coverage)} les plus sûres.</div>`;
+    if(s.errors.length)html+=`<table><tr><th>Carte présentée</th><th>Reconnue comme</th><th>Confiance</th></tr>${s.errors.map(e=>`<tr><td class="ko">${esc(e.asked)}</td><td>${esc(e.got)}</td><td>${Math.round(e.score*100)} %</td></tr>`).join('')}</table>`;
+  });
+  if(!html)html='<div class="msg">Aucune carte n’a pu être évaluée.</div>';
+  if(t.skipped)html+=`<div class="msg">${t.skipped} carte${t.skipped>1?'s':''} passée${t.skipped>1?'s':''}.</div>`;
+  $('summary').innerHTML=html;
+  t.stats=all;
+  $('btn-copy').disabled=false;$('btn-dl').disabled=false;
+}
+function exportObject(){
+  const t=B.last;if(!t)return null;
+  const v=$('video');
+  return{
+    format:'machine-marvel/banc-reconnaissance',version:1,
+    date:new Date().toISOString(),
+    appareil:{agent:navigator.userAgent,camera:B.stream?`${v.videoWidth}×${v.videoHeight}`:null,cadre:Math.round((B.guide.w/(v.videoHeight||1))*100)/100},
+    reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,guide:+$('set-guide').value,leurres:B.decoys.length,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
+    cartes:B.cards.map(c=>({code:c.code,nom:c.name})),
+    essaiABlanc:B.blank||null,
+    resume:t.stats||null,
+    essais:t.trials.map(x=>({code:x.asked,nom:x.name,ms:x.ms||null,passee:!!x.skipped,resultats:x.results,vignetteSiRate:x.thumb||null})),
+    dureeSecondes:Math.round((Date.now()-t.startedAt)/1000)
+  };
+}
+async function copyResults(){
+  const o=exportObject();if(!o)return;
+  const text=JSON.stringify(o,null,1);
+  let ok=false;
+  try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);ok=true;}}catch(_){}
+  if(!ok){try{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(_){}}
+  msg('refs-msg',ok?'Résultats copiés : collez-les dans la conversation.':'Copie impossible : utilisez « Télécharger ».',ok?'ok':'err');
+  if(ok)setFeedback('Résultats copiés ✓','learn');
+}
+function downloadResults(){
+  const o=exportObject();if(!o)return;
+  const b=new Blob([JSON.stringify(o,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='resultats-reconnaissance-'+o.date.slice(0,16).replace(/[-:T]/g,'')+'.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+// Réglages affichés
+['still','frames','leave','guide'].forEach(k=>$('set-'+k).addEventListener('input',()=>{$('v-'+k).textContent=$('set-'+k).value;if(k==='guide')layoutGuide();}));
+$('ref-own').addEventListener('change',updateStartButton);
+$('ref-mcdb').addEventListener('change',updateStartButton);
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&B.stream&&!/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();snapNow();}});
+window.addEventListener('resize',layoutGuide);
+window.addEventListener('pagehide',stopStream);
+// Pour les essais automatiques
+window.__bench={B,describe,sim,rank,variantsOf,perturb,evaluate,statsFor,handleCapture,loadCatalog,setCards,prepareRefs,blankTest,startTest,exportObject,tick,get catalog(){return catalog;}};
+</script>
+</body>
+</html>
