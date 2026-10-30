@@ -88,6 +88,23 @@ details.adv summary{cursor:pointer;font-weight:700;}
 .adv .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:8px;}
 .adv .grid label{font-size:12px;color:var(--dim);}
 h3.res{font-size:14px;margin-top:14px;font-weight:800;}
+button.big{font-size:16px;padding:13px 18px;}
+.how{background:var(--surf);border:1px solid var(--bdr);border-left:4px solid var(--red);border-radius:var(--r);padding:12px 14px;}
+.how h2{font-size:16px;font-weight:800;margin-bottom:4px;}
+.how h2 small{font-weight:600;color:var(--dim);font-size:12px;}
+.how ol{margin:6px 0 6px 20px;font-size:14px;}
+.how li{margin:4px 0;}
+.nextbar{position:sticky;top:0;z-index:5;background:#fff7d6;border:1px solid #f0d36b;color:#5c4400;border-radius:var(--r);padding:10px 12px;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.nextbar[hidden]{display:none;}
+.hint{font-size:12px;color:var(--dim);margin-top:4px;}
+.diagram{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:8px;margin:8px 0;}
+.diagram svg{display:block;width:100%;height:auto;max-width:420px;margin:0 auto;}
+.diagram p{font-size:12px;color:var(--dim);text-align:center;margin-top:4px;}
+ol.steps{margin:8px 0 10px 20px;font-size:14px;}
+ol.steps li{margin:5px 0;}
+details.faq{margin-top:10px;font-size:13px;color:var(--dim);}
+details.faq summary{cursor:pointer;font-weight:700;}
+details.faq p{margin:6px 0 0 2px;}
 @media (max-width:520px){.adv .grid{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -95,82 +112,132 @@ h3.res{font-size:14px;margin-top:14px;font-weight:800;}
 <header class="top">
   <h1>Banc d'essai de reconnaissance des cartes</h1>
   <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien n'est envoyé : la caméra et les calculs restent dans votre navigateur.</p>
-  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 2 · 30 octobre 2026 : le test mesure d'abord le fond vide</p>
+  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 3 · 30 octobre 2026 : mode d'emploi simplifié</p>
 </header>
 <main>
 
+<div id="nextbar" class="nextbar" role="status" aria-live="polite"></div>
+
+<section class="how">
+  <h2>Comment ça marche <small>(environ 5 minutes)</small></h2>
+  <ol>
+    <li><b>Vous choisissez des cartes</b> (l'adresse d'un de vos decks MarvelCDB).</li>
+    <li><b>Vous les retrouvez</b> dans votre collection, avec leur sleeve.</li>
+    <li><b>Vous démarrez la caméra</b>, au-dessus de la table.</li>
+    <li><b>Une carte à la fois</b> : vous la posez dans le cadre, le téléphone dit s'il l'a reconnue, vous la retirez.</li>
+  </ol>
+  <div class="hint">À la fin, vous obtenez un pourcentage de cartes reconnues, à me renvoyer. Les réglages par défaut suffisent : vous n'avez rien d'autre à régler.</div>
+</section>
+
 <section class="step" id="st1">
-  <h2><span class="n">1</span>Les cartes à tester</h2>
-  <div class="sub">On prend quelques cartes d'un deck (par défaut 20) : ce sont celles que vous allez présenter devant la caméra.</div>
+  <h2><span class="n">1</span>Choisir les cartes à montrer</h2>
+  <div class="sub">Pour reconnaître une carte, le téléphone doit savoir lesquelles il peut voir. Il prend quelques cartes d'un deck : ce sont celles que vous lui montrerez.</div>
   <div class="tabs" role="tablist">
-    <button type="button" id="tab-deck" class="on" role="tab" onclick="showTab('deck')">Lien de deck MarvelCDB</button>
-    <button type="button" id="tab-order" role="tab" onclick="showTab('order')">Commande de la machine</button>
+    <button type="button" id="tab-deck" class="on" role="tab" onclick="showTab('deck')">Un deck MarvelCDB</button>
     <button type="button" id="tab-rand" role="tab" onclick="showTab('rand')">Au hasard</button>
+    <button type="button" id="tab-order" role="tab" onclick="showTab('order')">Commande machine</button>
   </div>
   <div id="pane-deck">
-    <label class="lbl" for="deck-link">Lien du deck (marvelcdb.com/decklist/view/… ou /deck/view/…)</label>
-    <div class="row"><input id="deck-link" type="text" placeholder="https://marvelcdb.com/decklist/view/…" autocomplete="off"><button type="button" class="pri" id="btn-deck" onclick="chooseFromDeck()">Prendre ces cartes</button></div>
+    <label class="lbl" for="deck-link">Adresse d'un de vos decks</label>
+    <div class="row"><input id="deck-link" type="text" placeholder="https://marvelcdb.com/decklist/view/…" autocomplete="off" inputmode="url"><button type="button" class="pri big" id="btn-deck" onclick="chooseFromDeck()">Choisir les cartes</button></div>
+    <div class="hint">Sur MarvelCDB, ouvrez la page de votre deck, copiez l'adresse en haut du navigateur (elle contient « decklist/view » ou « deck/view »), puis collez-la ici.</div>
+  </div>
+  <div id="pane-rand" hidden>
+    <div class="sub" style="margin:0 0 8px">Pas d'adresse sous la main ? Le programme prend au hasard des cartes du Core Set (à avoir sous la main, avec leur sleeve).</div>
+    <div class="row"><button type="button" class="pri big" id="btn-rand" onclick="chooseRandom()">Tirer des cartes au hasard</button></div>
   </div>
   <div id="pane-order" hidden>
     <label class="lbl" for="order-json">Commande copiée depuis l'appli (Actions › Machine › Copier)</label>
     <textarea id="order-json" placeholder='{"format":"machine-marvel/commande", …}'></textarea>
     <div class="row" style="margin-top:8px"><button type="button" class="pri" id="btn-order" onclick="chooseFromOrder()">Prendre ces cartes</button></div>
   </div>
-  <div id="pane-rand" hidden>
-    <div class="sub" style="margin:0 0 8px">Des cartes joueur du Core Set tirées au hasard (pratique si vous n'avez pas de lien sous la main).</div>
-    <div class="row"><button type="button" class="pri" id="btn-rand" onclick="chooseRandom()">Tirer des cartes</button></div>
-  </div>
-  <label class="lbl" for="n-cards">Nombre de cartes à tester</label>
-  <input id="n-cards" type="number" min="3" max="60" value="20" style="max-width:120px">
+  <label class="lbl" for="n-cards">Combien de cartes allez-vous montrer ? <span style="font-weight:400">(8 suffisent pour un premier essai)</span></label>
+  <input id="n-cards" type="number" min="3" max="60" value="8" inputmode="numeric" style="max-width:120px">
   <div class="msg" id="st1-msg" role="status"></div>
   <div class="cards" id="card-list"></div>
-</section>
-
-<section class="step" id="st2">
-  <h2><span class="n">2</span>Les images de référence</h2>
-  <div class="sub">Ce que le programme connaît d'avance pour reconnaître une carte. On peut tester les deux façons et les comparer.</div>
-  <label class="chk"><input type="checkbox" id="ref-mcdb" checked><span>Images officielles de MarvelCDB<small>Aucune préparation, mais elles sont en anglais (vos cartes sont peut-être en français : même illustration, texte différent) et sans sleeve.</small></span></label>
-  <label class="chk"><input type="checkbox" id="ref-own" checked><span>Mes cartes (apprentissage)<small>Vous montrez chaque carte une fois à la caméra, puis on la reconnaît à nouveau : mêmes cartes, même sleeve, même éclairage, donc la meilleure situation possible.</small></span></label>
-  <div class="row" style="align-items:center"><label class="lbl" for="n-decoys" style="margin:0">Cartes « leurres » :</label>
-    <select id="n-decoys" style="max-width:230px"><option value="0">aucune</option><option value="60" selected>60 (collection moyenne)</option><option value="200">200 (grosse collection)</option></select></div>
-  <div class="sub" style="margin:4px 0 0">Des images de cartes au hasard ajoutées aux références, pour voir si le programme se trompe quand il y a beaucoup de cartes possibles (en images MarvelCDB uniquement).</div>
-  <div class="ctl"><button type="button" class="pri" id="btn-refs" onclick="prepareRefs()" disabled>Préparer les références</button><button type="button" id="btn-blank" onclick="blankTest()" disabled>Essai à blanc (sans caméra)</button></div>
   <progress id="refs-progress" value="0" max="1" hidden></progress>
   <div class="msg" id="refs-msg" role="status"></div>
-  <div id="blank-out"></div>
+  <details class="adv" id="opts"><summary>Options (facultatif : vous pouvez les ignorer)</summary>
+    <label class="chk"><input type="checkbox" id="ref-mcdb" checked><span>Comparer avec les photos officielles de MarvelCDB<small>Rien à préparer. Elles sont en anglais et sans sleeve, mais l'illustration est la même que sur vos cartes.</small></span></label>
+    <label class="chk"><input type="checkbox" id="ref-own"><span>D'abord montrer chaque carte une fois au téléphone (test en 2 temps, deux fois plus long)<small>Le téléphone mémorise vos cartes (mêmes sleeves, même lumière), puis les retrouve : c'est le meilleur cas possible.</small></span></label>
+    <div class="row" style="align-items:center"><label class="lbl" for="n-decoys" style="margin:0">Cartes en plus pour compliquer :</label>
+      <select id="n-decoys" style="max-width:230px"><option value="0">aucune</option><option value="60" selected>60 (collection moyenne)</option><option value="200">200 (grosse collection)</option></select></div>
+    <div class="hint">Des images de cartes au hasard sont ajoutées pour voir si le programme se trompe quand il y a beaucoup de cartes possibles.</div>
+    <div class="ctl"><button type="button" id="btn-refs" onclick="prepareRefs()" disabled>Préparer à nouveau</button><button type="button" id="btn-blank" onclick="blankTest()" disabled>Essai sans caméra</button></div>
+    <div id="blank-out"></div>
+  </details>
 </section>
 
 <section class="step" id="st3">
-  <h2><span class="n">3</span>Le test avec la caméra</h2>
-  <div class="sub">Posez le téléphone sur un support (ou tenez-le fixe) au-dessus d'une surface où poser les cartes à plat (une feuille de papier unie aide, mais n'est pas obligatoire). Au lancement, le test mesure d'abord le fond : gardez le cadre vide 2 secondes. Ensuite on vous demande une carte à la fois : posez-la dans le cadre, retirez-la, posez la suivante.</div>
-  <div class="ctl"><button type="button" class="pri" id="btn-cam" onclick="startCamera()">Démarrer la caméra</button><button type="button" id="btn-switch" onclick="switchCamera()" disabled>Autre caméra</button></div>
+  <h2><span class="n">2</span>La caméra et le test</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 360 190" role="img" aria-label="Schéma : le téléphone à plat au-dessus de la table, écran vers le haut, appareil photo vers la table, la carte posée à plat dessous">
+      <rect x="0" y="158" width="360" height="20" fill="#d8c3a0"/>
+      <rect x="0" y="158" width="360" height="3" fill="#b99f78"/>
+      <text x="340" y="173" font-size="11" text-anchor="end" fill="#6b5535">table</text>
+      <rect x="95" y="151" width="100" height="7" rx="2" fill="#fff" stroke="#c98a0a" stroke-width="2"/>
+      <text x="145" y="144" font-size="11" text-anchor="middle" fill="#8a5f08" font-weight="700">la carte, à plat</text>
+      <rect x="60" y="44" width="170" height="16" rx="6" fill="#2b2b36"/>
+      <rect x="67" y="44" width="156" height="5" rx="2.5" fill="#5aa0ff"/>
+      <text x="145" y="36" font-size="11" text-anchor="middle" fill="#2563eb" font-weight="700">écran (tourné vers vous)</text>
+      <circle cx="145" cy="60" r="4" fill="#d61f2b" stroke="#fff" stroke-width="1.2"/>
+      <path d="M145 64 L95 150 M145 64 L195 150" stroke="#d61f2b" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
+      <text x="164" y="84" font-size="11" fill="#d61f2b" font-weight="700">appareil photo (au dos)</text>
+      <path d="M24 62 V150" stroke="#565169" stroke-width="1.5"/>
+      <path d="M24 58 l-4 8 h8 z M24 154 l-4 -8 h8 z" fill="#565169"/>
+      <text x="32" y="110" font-size="11" fill="#565169">≈ 25 cm</text>
+      <text x="326" y="24" font-size="12" text-anchor="end" fill="#211f2c">👁 vous</text>
+      <path d="M292 28 L228 44" stroke="#565169" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+    </svg>
+    <p>Le téléphone est à plat, écran vers vous, appareil photo (au dos) vers la table, à environ 25 cm au-dessus de la carte posée à plat. Dans la main, ou posé sur deux piles de livres : comme vous voulez, mais sans bouger pendant le test.</p>
+  </div>
+  <ol class="steps">
+    <li>Appuyez sur <b>Démarrer la caméra</b> et acceptez l'autorisation de la caméra.</li>
+    <li>Placez le téléphone au-dessus d'un <b>endroit vide</b> de la table : vous voyez la table à l'écran, avec un <b>cadre pointillé</b>. C'est là que viendra la carte.</li>
+    <li>Appuyez sur <b>Lancer le test</b>, puis <b>ne posez rien pendant 2 secondes</b> : le téléphone regarde la table vide.</li>
+    <li>Le téléphone affiche la carte à montrer : <b>posez-la à plat dans le cadre</b>, sans bouger. Un bip dit qu'elle a été vue. <b>Retirez-la</b>, puis posez la suivante.</li>
+  </ol>
+  <div class="ctl"><button type="button" class="pri big" id="btn-cam" onclick="startCamera()">Démarrer la caméra</button><button type="button" id="btn-switch" onclick="switchCamera()" disabled>Changer de caméra</button></div>
   <div id="cam"><video id="video" playsinline muted></video><div id="guide"></div><div id="cam-state"></div></div>
   <div class="msg" id="cam-msg" role="status"></div>
   <div id="prompt"><img id="p-img" alt=""><div><div class="ph" id="p-phase"></div><div class="nm" id="p-name"></div><div class="sb" id="p-sub"></div></div></div>
   <div id="feedback" role="status" aria-live="polite"></div>
   <div class="ctl">
-    <button type="button" class="pri" id="btn-start" onclick="startTest()" disabled>Lancer le test</button>
-    <button type="button" id="btn-snap" onclick="snapNow()" disabled>Capturer maintenant</button>
-    <button type="button" id="btn-skip" onclick="skipCard()" disabled>Passer cette carte</button>
-    <button type="button" id="btn-bg" onclick="remeasureBg()" disabled>Mesurer le fond</button>
-    <button type="button" id="btn-stop" onclick="stopTest(true)" disabled>Arrêter</button>
+    <button type="button" class="big" id="btn-start" onclick="startTest()" disabled>Lancer le test</button>
   </div>
-  <details class="adv"><summary>Réglages de la détection automatique</summary>
+  <div id="test-ctl" hidden>
+    <div class="ctl">
+      <button type="button" id="btn-skip" onclick="skipCard()" disabled>Passer cette carte</button>
+      <button type="button" id="btn-stop" onclick="stopTest(true)" disabled>Arrêter le test</button>
+    </div>
+    <div class="ctl">
+      <button type="button" id="btn-bg" onclick="remeasureBg()" disabled>Remesurer la table vide</button>
+      <button type="button" id="btn-snap" onclick="snapNow()" disabled>Prendre la photo maintenant</button>
+    </div>
+  </div>
+  <details class="adv"><summary>Réglages de la détection automatique (facultatif)</summary>
     <div class="grid">
       <div><label for="set-still">Immobilité (plus petit = plus exigeant) : <b id="v-still">4</b></label><input id="set-still" type="range" min="1" max="12" value="4"></div>
-      <div><label for="set-frames">Images immobiles avant capture : <b id="v-frames">5</b></label><input id="set-frames" type="range" min="2" max="14" value="5"></div>
+      <div><label for="set-frames">Images immobiles avant la photo : <b id="v-frames">5</b></label><input id="set-frames" type="range" min="2" max="14" value="5"></div>
       <div><label for="set-leave">Seuil « carte retirée » : <b id="v-leave">14</b></label><input id="set-leave" type="range" min="4" max="40" value="14"></div>
-      <div><label for="set-present">Écart au fond pour voir une carte : <b id="v-present">12</b></label><input id="set-present" type="range" min="4" max="40" value="12"></div>
+      <div><label for="set-present">Écart avec la table vide pour voir une carte : <b id="v-present">12</b></label><input id="set-present" type="range" min="4" max="40" value="12"></div>
       <div><label for="set-guide">Taille du cadre : <b id="v-guide">78</b> %</label><input id="set-guide" type="range" min="50" max="92" value="78"></div>
     </div>
+  </details>
+  <details class="faq"><summary>Ça ne marche pas ? Quelques réponses</summary>
+    <p><b>La caméra ne s'allume pas.</b> Touchez le cadenas à gauche de l'adresse, puis « Autorisations » › « Appareil photo » › « Autoriser », et rechargez la page.</p>
+    <p><b>Le téléphone ne voit jamais ma carte.</b> Vérifiez que le cadre était vide au départ ; approchez ou éloignez le téléphone pour que la carte remplisse le cadre pointillé ; sinon touchez « Prendre la photo maintenant », ou baissez « Écart avec la table vide » dans les réglages.</p>
+    <p><b>Il se trompe de carte.</b> C'est justement ce que le test mesure : continuez, c'est le résultat final qui compte.</p>
+    <p><b>J'ai bougé le téléphone.</b> Touchez « Remesurer la table vide » et ne posez rien pendant 2 secondes.</p>
   </details>
 </section>
 
 <section class="step" id="st4">
-  <h2><span class="n">4</span>Les résultats</h2>
-  <div class="sub">Le test est fait quand toutes les cartes ont été présentées. Copiez ou téléchargez les résultats pour me les envoyer : je m'en sers pour améliorer la méthode.</div>
+  <h2><span class="n">3</span>Les résultats</h2>
+  <div class="sub">Quand toutes les cartes ont été montrées, le résultat s'affiche ici. Appuyez sur « Copier les résultats », puis allez dans la conversation avec Claude et collez-les (appui long dans la zone de saisie, puis « Coller »).</div>
   <div id="summary"><div class="msg">Pas encore de résultat.</div></div>
-  <div class="ctl"><button type="button" id="btn-copy" onclick="copyResults()" disabled>Copier les résultats</button><button type="button" id="btn-dl" onclick="downloadResults()" disabled>Télécharger (.json)</button></div>
+  <div class="ctl"><button type="button" class="pri" id="btn-copy" onclick="copyResults()" disabled>Copier les résultats</button><button type="button" id="btn-dl" onclick="downloadResults()" disabled>Télécharger (.json)</button></div>
+  <div class="msg" id="copy-msg" role="status"></div>
 </section>
 
 </main>
@@ -202,7 +269,7 @@ const B={
   corsBlocked:false,
   stream:null,devices:[],devIdx:0,
   test:null,           // {queue,qi,trials,startedAt}
-  armed:false,still:0,lastSmall:null,lastCapAt:0,
+  armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,
   bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour
   guide:{x:0,y:0,w:0,h:0},
   audio:null
@@ -249,23 +316,25 @@ function pickCards(list,n){
   shuffle(out);
   return out.slice(0,n);
 }
-function nWanted(){return Math.max(3,Math.min(60,parseInt($('n-cards').value,10)||20));}
+function nWanted(){return Math.max(3,Math.min(60,parseInt($('n-cards').value,10)||8));}
 function setCards(cards,label){
   B.cards=cards;
   B.refs={mcdb:new Map(),own:new Map()};B.refCanvas=new Map();
   $('card-list').innerHTML=cards.map(c=>`<span>${esc(c.name)}${c.qty>1?` <b>×${c.qty}</b>`:''}</span>`).join('');
-  msg('st1-msg',cards.length?`${cards.length} carte${cards.length>1?'s':''} à tester ${label?'('+label+')':''}. Il vous faudra ces cartes sous la main, avec leur sleeve.`:'Aucune carte utilisable (cartes « portrait » seulement : alliés, événements, ressources, soutiens, améliorations…).',cards.length?'ok':'err');
+  msg('st1-msg',cards.length?`${cards.length} carte${cards.length>1?'s':''} choisie${cards.length>1?'s':''} ${label?'('+label+')':''}. Retrouvez-les dans vos cartes (avec leur sleeve) et posez-les à côté de vous.`:'Aucune carte utilisable (cartes « portrait » seulement : alliés, événements, ressources, soutiens, améliorations…).',cards.length?'ok':'err');
   $('btn-refs').disabled=!cards.length;
   $('btn-blank').disabled=true;
+  B.last=null;$('summary').innerHTML='<div class="msg">Pas encore de résultat.</div>';$('btn-copy').disabled=true;$('btn-dl').disabled=true;$('copy-msg').textContent='';
   updateStartButton();
 }
+function afterChoose(){if(B.cards.length&&B.autoPrep!==false)prepareRefs();}   // les images de comparaison se préparent toutes seules
 async function chooseFromDeck(){
   const link=parseDeckLink($('deck-link').value);
   if(!link){msg('st1-msg','Lien non reconnu : il doit ressembler à marvelcdb.com/decklist/view/… ou marvelcdb.com/deck/view/…','err');return;}
   msg('st1-msg','Lecture du deck sur MarvelCDB…');
   try{
     const [data]=await Promise.all([fetchDeck(link),loadCatalog()]);
-    setCards(pickCards(Object.keys(data.slots).map(code=>({code,qty:data.slots[code]})),nWanted()),data.name||'deck');
+    setCards(pickCards(Object.keys(data.slots).map(code=>({code,qty:data.slots[code]})),nWanted()),data.name||'deck');afterChoose();
   }catch(e){msg('st1-msg',e.message||String(e),'err');}
 }
 async function chooseFromOrder(){
@@ -275,7 +344,7 @@ async function chooseFromOrder(){
   ((o&&o.parties)||[]).forEach(p=>(p.cartes||[]).forEach(c=>{if(c&&c.code)list.push({code:c.code,qty:c.qte||1});}));
   if(!list.length){msg('st1-msg','Aucune carte trouvée dans cette commande.','err');return;}
   msg('st1-msg','Lecture du catalogue MarvelCDB…');
-  try{await loadCatalog();setCards(pickCards(list,nWanted()),o.nom||'commande');}
+  try{await loadCatalog();setCards(pickCards(list,nWanted()),o.nom||'commande');afterChoose();}
   catch(e){msg('st1-msg','MarvelCDB est injoignable : vérifiez la connexion.','err');}
 }
 async function chooseRandom(){
@@ -283,7 +352,7 @@ async function chooseRandom(){
   try{
     await loadCatalog();
     const core=catalog.filter(c=>c.pack_code==='core'&&c.faction_code!=='encounter'&&c.faction_code!=='hero').map(c=>({code:c.code,qty:1}));
-    setCards(pickCards(core,nWanted()),'Core Set, au hasard');
+    setCards(pickCards(core,nWanted()),'Core Set, au hasard');afterChoose();
   }catch(e){msg('st1-msg','MarvelCDB est injoignable : vérifiez la connexion.','err');}
 }
 
@@ -390,12 +459,16 @@ function toCanvas(im,maxW){
   return c;
 }
 async function prepareRefs(){
+  B.preparing=true;updateNext();
+  try{await prepareRefsInner();}finally{B.preparing=false;updateStartButton();}
+}
+async function prepareRefsInner(){
   if(!B.cards.length)return;
   $('btn-refs').disabled=true;$('btn-blank').disabled=true;
   const wantM=$('ref-mcdb').checked,wantO=$('ref-own').checked;
   B.refs.mcdb=new Map();B.refs.own=new Map();B.refCanvas=new Map();B.corsBlocked=false;
   if(!wantM&&!wantO){msg('refs-msg','Cochez au moins une façon de préparer les références.','err');$('btn-refs').disabled=false;return;}
-  let text='';
+  let text='',autoOwn=false;
   if(wantM){
     try{await loadCatalog();}catch(e){msg('refs-msg','MarvelCDB est injoignable : vérifiez la connexion.','err');$('btn-refs').disabled=false;return;}
     // leurres : cartes « portrait » au hasard, hors des cartes à tester
@@ -424,13 +497,13 @@ async function prepareRefs(){
     await Promise.all([worker(),worker(),worker(),worker()]);
     prog.hidden=true;
     if(B.corsBlocked&&B.refs.mcdb.size===0){
-      text='MarvelCDB n’autorise pas la lecture de ses images par une page web (réglage de leur serveur) : la méthode « images MarvelCDB » est impossible ici. Utilisez « Mes cartes (apprentissage) ». Côté machine, le Raspberry Pi pourra, lui, télécharger ces images sans cette restriction.';
-      $('ref-mcdb').checked=false;
-    }else if(!B.refs.mcdb.size){text='Aucune image MarvelCDB n’a pu être lue (réseau ?).';}
-    else text=`${B.refs.mcdb.size} image${B.refs.mcdb.size>1?'s':''} MarvelCDB lue${B.refs.mcdb.size>1?'s':''}${fail?` (${fail} échec${fail>1?'s':''})`:''}${B.decoys.length?`, dont ${B.decoys.length} leurre${B.decoys.length>1?'s':''}`:''}. `;
+      text='Les photos officielles de MarvelCDB ne peuvent pas être lues par cette page (réglage de leur serveur). Le test se fera donc en 2 temps : le téléphone mémorise d’abord vos cartes, puis les retrouve.';
+      $('ref-mcdb').checked=false;$('ref-own').checked=true;autoOwn=true;
+    }else if(!B.refs.mcdb.size){text='Aucune image MarvelCDB n’a pu être téléchargée (connexion ?).';}
+    else text=`✓ Prêt : ${B.refs.mcdb.size} photo${B.refs.mcdb.size>1?'s':''} MarvelCDB téléchargée${B.refs.mcdb.size>1?'s':''}${fail?` (${fail} échec${fail>1?'s':''})`:''}${B.decoys.length?`, dont ${B.decoys.length} carte${B.decoys.length>1?'s':''} en plus pour compliquer`:''}. `;
   }
-  if(wantO)text+=(text?' ':'')+'Apprentissage avec vos cartes : il aura lieu au début du test (étape 3).';
-  msg('refs-msg',text.trim(),(wantM&&B.refs.mcdb.size)||wantO?'ok':'err');
+  if(wantO)text+=(text?' ':'')+'✓ Prêt : le téléphone mémorisera d’abord vos cartes, au début du test.';
+  msg('refs-msg',text.trim(),(wantM&&B.refs.mcdb.size)||wantO||autoOwn?'ok':'err');
   $('btn-refs').disabled=false;
   $('btn-blank').disabled=!B.refs.mcdb.size;
   updateStartButton();
@@ -483,7 +556,7 @@ async function blankTest(){
     out.push({level,n,acc1:n?ok1/n:0,acc3:n?ok3/n:0});
   }
   const names={light:'léger (petit décalage, lumière un peu différente)',medium:'moyen (flou, reflet, bruit, léger angle)',heavy:'difficile (fort reflet, flou, angle, lumière très différente)'};
-  $('blank-out').innerHTML='<h3 class="res">Essai à blanc (images MarvelCDB abîmées)</h3><table><tr><th>Conditions</th><th>Bon du 1ᵉʳ coup</th><th>Dans les 3 premiers</th></tr>'+out.map(o=>`<tr><td>${esc(names[o.level])}</td><td class="${o.acc1>=.98?'ok':o.acc1<.9?'ko':''}">${pct(o.acc1)}</td><td>${pct(o.acc3)}</td></tr>`).join('')+'</table><div class="msg">Cet essai vérifie que le programme fonctionne ; la vraie réponse vient du test avec la caméra (étape 3).</div>';
+  $('blank-out').innerHTML='<h3 class="res">Essai sans caméra (images MarvelCDB abîmées)</h3><table><tr><th>Conditions</th><th>Bon du 1ᵉʳ coup</th><th>Dans les 3 premiers</th></tr>'+out.map(o=>`<tr><td>${esc(names[o.level])}</td><td class="${o.acc1>=.98?'ok':o.acc1<.9?'ko':''}">${pct(o.acc1)}</td><td>${pct(o.acc3)}</td></tr>`).join('')+'</table><div class="msg">Cet essai vérifie que le programme fonctionne ; la vraie réponse vient du test avec la caméra (étape 2).</div>';
   B.blank=out;
   $('btn-blank').disabled=false;
 }
@@ -530,6 +603,7 @@ function stopStream(){
   clearInterval(loopTimer);loopTimer=null;
   if(B.stream){B.stream.getTracks().forEach(t=>t.stop());B.stream=null;}
   keepAwake(false);
+  updateStartButton();
 }
 // Garde l'écran allumé tant que la caméra tourne (sinon le téléphone s'éteint en plein test).
 let wakeLock=null;
@@ -608,7 +682,7 @@ function sceneDiff(cur,bg){   // écart moyen (0-255) dans le cadre et sur le po
   return{inD:mean(B.mIn),ringD:mean(B.mRing),off};
 }
 function fondMesure(){
-  setFeedback('Fond mesuré. Présentez la carte demandée.','learn');
+  setFeedback('C’est bon. Posez la carte demandée à plat dans le cadre.','learn');
   $('prompt').classList.add('on');
   beep(true);
 }
@@ -616,7 +690,7 @@ function remeasureBg(){
   if(!B.test)return;
   B.bg=null;B.calibSince=0;B.armed=true;B.still=0;
   $('prompt').classList.remove('on');
-  setFeedback('Mesure du fond : gardez le cadre vide pendant 2 secondes…','learn');
+  setFeedback('Ne posez rien pendant 2 secondes : le téléphone regarde la table vide.','learn');
 }
 function tick(){
   const video=$('video');
@@ -628,14 +702,14 @@ function tick(){
   const stillNow=motion<T.still;
   B.still=stillNow?B.still+1:0;
   cam.classList.toggle('still',stillNow);
-  if(!B.test){setChips([[stillNow?'image stable':'ça bouge',stillNow],[tex>10?'image avec du détail':'cadre uni',tex>10]]);cam.classList.remove('armed-ok');return;}
+  if(!B.test){setChips([[stillNow?'image stable':'ça bouge',stillNow]]);cam.classList.remove('armed-ok');return;}
   sceneMasks();
   const sc=grabScene();
   // 1. Mesure du fond : cadre vide et immobile pendant 2 s. La carte à présenter n'est annoncée qu'ensuite.
   if(!B.bg){
     if(!stillNow||!B.calibSince)B.calibSince=Date.now();
     const left=Math.ceil((2000-(Date.now()-B.calibSince))/1000);
-    setChips([['mesure du fond : gardez le cadre vide'+(stillNow&&left>0?' ('+left+')':''),false]]);
+    setChips([['ne posez rien : le téléphone regarde la table vide'+(stillNow&&left>0?' ('+left+')':''),false]]);
     cam.classList.remove('armed-ok');
     if(Date.now()-B.calibSince>=2000){B.bg=sc;B.still=0;B.calibSince=0;fondMesure();}
     return;
@@ -649,7 +723,7 @@ function tick(){
     const gone=dd.inD<T.present*.6;
     const swapped=present&&B.still>=T.frames&&B.capSmall&&meanAbsDiff(cur,B.capSmall)>T.leave;
     if(gone||swapped){B.armed=true;if(gone)B.still=0;}
-    setChips([['retirez la carte',false]].concat(Date.now()-B.lastCapAt>10000?[['bloqué ? videz le cadre, puis « Mesurer le fond »',false]]:[]));
+    setChips([['retirez la carte',false]].concat(Date.now()-B.lastCapAt>10000?[['bloqué ? videz le cadre, puis touchez « Remesurer la table vide »',false]]:[]));
     cam.classList.remove('armed-ok');
     return;
   }
@@ -658,7 +732,7 @@ function tick(){
   if(moved&&B.still>=T.frames){B.bg=sc;B.still=0;}
   const ok=present&&B.still>=T.frames;
   cam.classList.toggle('armed-ok',ok);
-  setChips([[stillNow?'image stable':'ça bouge',stillNow],[present?'carte détectée':moved?'fond déplacé : nouvelle mesure':'cadre vide',present],['écart '+Math.round(dd.inD),false],['présentez la carte',false]]);
+  setChips([[stillNow?'image stable':'ça bouge',stillNow],[present?'carte détectée':moved?'téléphone déplacé : nouvelle mesure':'rien dans le cadre',present],['écart '+Math.round(dd.inD),false],['présentez la carte',false]]);
   if(ok)capture();
 }
 function capture(){
@@ -672,11 +746,31 @@ function capture(){
 // ═══════════════════════════════════════════════════════════════════════════
 // PROTOCOLE DU TEST : apprentissage (si demandé), puis test dans le désordre
 // ═══════════════════════════════════════════════════════════════════════════
-function updateStartButton(){
+function refsReady(){
   // Si les images MarvelCDB sont demandées, elles doivent être prêtes ; l'apprentissage, lui, se fait pendant le test.
   const needM=$('ref-mcdb').checked,readyM=!needM||B.refs.mcdb.size>0;
-  const ready=B.cards.length&&B.stream&&readyM&&($('ref-own').checked||B.refs.mcdb.size>0);
+  return !!(B.cards.length&&readyM&&($('ref-own').checked||B.refs.mcdb.size>0));
+}
+function updateStartButton(){
+  const ready=refsReady()&&!!B.stream;
   $('btn-start').disabled=!ready||!!B.test;
+  $('btn-cam').classList.toggle('pri',!B.stream);          // un seul gros bouton rouge à la fois : celui de l'étape en cours
+  $('btn-start').classList.toggle('pri',ready&&!B.test);
+  updateNext();
+}
+// Bandeau « prochaine étape » en haut de la page (caché pendant le test : les consignes sont alors dans le cadre de la carte à montrer).
+function updateNext(){
+  const el=$('nextbar');if(!el)return;
+  if(B.test){el.hidden=true;return;}
+  el.hidden=false;
+  let t;
+  if(!B.cards.length)t='➜ Étape 1 : collez l’adresse d’un de vos decks MarvelCDB (ou choisissez « Au hasard »), puis touchez « Choisir les cartes ».';
+  else if(B.preparing)t='⏳ Préparation en cours (téléchargement des images)… un instant.';
+  else if(!refsReady())t='⚠ Les images de comparaison ne sont pas prêtes (connexion ?). Ouvrez « Options », puis touchez « Préparer à nouveau ».';
+  else if(B.last&&B.stream)t='✓ Test terminé : copiez les résultats tout en bas de la page. Pour recommencer, touchez « Lancer le test ».';
+  else if(!B.stream)t='➜ Étape 2 : retrouvez vos '+B.cards.length+' cartes, puis touchez « Démarrer la caméra » (acceptez l’autorisation).';
+  else t='➜ Posez le téléphone au-dessus d’un endroit vide de la table (le cadre pointillé bien visible), puis touchez « Lancer le test ».';
+  el.textContent=t;
 }
 function beep(ok){
   try{
@@ -699,12 +793,13 @@ function startTest(){
   try{B.audio=B.audio||new (window.AudioContext||window.webkitAudioContext)();B.audio.resume();}catch(_){}  // le son demande un geste de l'utilisateur
   B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0};
   B.armed=true;B.still=0;B.capSmall=null;B.bg=null;B.calibSince=0;
-  $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;$('btn-bg').disabled=false;
+  updateNext();
+  $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;$('btn-bg').disabled=false;$('test-ctl').hidden=false;
   $('summary').innerHTML='<div class="msg">Test en cours…</div>';
   $('btn-copy').disabled=true;$('btn-dl').disabled=true;
   showPrompt();
   $('prompt').classList.remove('on');   // la carte à présenter n'est annoncée qu'une fois le fond vide mesuré (voir tick)
-  setFeedback('Mesure du fond : gardez le cadre vide pendant 2 secondes…','learn');
+  setFeedback('Ne posez rien pendant 2 secondes : le téléphone regarde la table vide.','learn');
   $('cam').scrollIntoView({block:'center',behavior:'smooth'});
 }
 function showPrompt(){
@@ -712,9 +807,10 @@ function showPrompt(){
   const nTest=t.queue.filter(q=>q.phase==='test').length,nLearn=t.queue.length-nTest;
   $('prompt').classList.add('on');
   $('p-img').src=item.card.img;
-  $('p-phase').textContent=item.phase==='learn'?`APPRENTISSAGE ${t.qi+1} / ${nLearn}`:`TEST ${t.qi-nLearn+1} / ${nTest}`;
+  const learn=item.phase==='learn';
+  $('p-phase').textContent=learn?`TEMPS 1 SUR 2 · CARTE ${t.qi+1} / ${nLearn}`:(nLearn?`TEMPS 2 SUR 2 · CARTE ${t.qi-nLearn+1} / ${nTest}`:`CARTE ${t.qi+1} / ${nTest}`);
   $('p-name').textContent=item.card.name;
-  $('p-sub').textContent=(item.card.pack?item.card.pack+' · ':'')+(item.phase==='learn'?'montrez-la une première fois : on mémorise son aspect':'présentez-la comme si la machine vous la rendait');
+  $('p-sub').textContent=(item.card.pack?item.card.pack+' · ':'')+(learn?'Posez-la à plat dans le cadre : le téléphone la mémorise.':'Posez-la à plat dans le cadre, sans bouger.');
 }
 function snapNow(){
   if(!B.stream||!B.guide.w)return;
@@ -779,7 +875,7 @@ function skipCard(){
 function stopTest(user){
   const t=B.test;if(!t)return;
   B.test=null;
-  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;
+  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;$('test-ctl').hidden=true;
   updateStartButton();
   if(user&&t.trials.length)summarize(t,true);
   else if(user)$('summary').innerHTML='<div class="msg">Test arrêté avant la première carte.</div>';
@@ -788,7 +884,7 @@ function stopTest(user){
 function finishTest(){
   const t=B.test;
   B.test=null;B.last=t;
-  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;
+  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;$('test-ctl').hidden=true;
   updateStartButton();
   summarize(t,false);
   beep(true);
@@ -810,19 +906,19 @@ function statsFor(trials,kind){
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
 function verdict(s){
   if(!s)return'';
-  if(s.acc1>=.98)return`<div class="verdict good"><b>Très bon.</b> Avec cette méthode simple, ${pct(s.acc1)} des cartes sont reconnues du premier coup parmi ${s.pool} références. Une reprise des cartes sans caméra dans la machine est envisageable, à confirmer sur plus de cartes et plusieurs séances.</div>`;
+  if(s.acc1>=.98)return`<div class="verdict good"><b>Très bon.</b> Avec cette méthode simple, ${pct(s.acc1)} des cartes sont reconnues du premier coup parmi ${s.pool} cartes possibles. Une reprise des cartes sans caméra dans la machine est envisageable, à confirmer sur plus de cartes et plusieurs séances.</div>`;
   if(s.acc1>=.9)return`<div class="verdict mid"><b>Prometteur, à renforcer.</b> ${pct(s.acc1)} du premier coup (${pct(s.acc3)} dans les 3 premiers). Un support fixe, un meilleur éclairage ou une méthode par points caractéristiques (ORB) devraient aider : à refaire après réglage.</div>`;
   return`<div class="verdict bad"><b>Insuffisant avec cette méthode simple.</b> ${pct(s.acc1)} du premier coup seulement. Cela ne condamne pas l’idée : on peut essayer les points caractéristiques (ORB) ou un réseau de neurones, et améliorer la prise de vue.</div>`;
 }
 function summarize(t,partial){
-  const kinds=[['mcdb','Références MarvelCDB'],['own','Mes cartes (apprentissage)']];
+  const kinds=[['mcdb','Avec les photos officielles de MarvelCDB'],['own','Avec vos cartes mémorisées (test en 2 temps)']];
   let html='';
   const all={};
   kinds.forEach(([k,label])=>{
     const s=statsFor(t.trials,k);all[k]=s;
     if(!s)return;
     html+=`<h3 class="res">${esc(label)}${partial?' (test interrompu)':''}</h3>
-      <div class="kpi"><div><b>${pct(s.acc1)}</b><small>reconnues du 1ᵉʳ coup (${s.ok1}/${s.n})</small></div><div><b>${pct(s.acc3)}</b><small>dans les 3 premières</small></div><div><b>${s.medMs} ms</b><small>temps de calcul médian</small></div><div><b>${s.pool}</b><small>références comparées</small></div></div>
+      <div class="kpi"><div><b>${pct(s.acc1)}</b><small>reconnues du 1ᵉʳ coup (${s.ok1}/${s.n})</small></div><div><b>${pct(s.acc3)}</b><small>dans les 3 premières</small></div><div><b>${s.medMs} ms</b><small>temps de calcul médian</small></div><div><b>${s.pool}</b><small>cartes possibles</small></div></div>
       ${verdict(s)}
       <div class="msg">Si on n’acceptait que les reconnaissances les plus sûres (le programme demanderait à vérifier les autres) : ${pct(s.c80.precision)} de bonnes réponses sur les ${pct(s.c80.coverage)} les plus sûres, ${pct(s.c60.precision)} sur les ${pct(s.c60.coverage)} les plus sûres.</div>`;
     if(s.errors.length)html+=`<table><tr><th>Carte présentée</th><th>Reconnue comme</th><th>Confiance</th></tr>${s.errors.map(e=>`<tr><td class="ko">${esc(e.asked)}</td><td>${esc(e.got)}</td><td>${Math.round(e.score*100)} %</td></tr>`).join('')}</table>`;
@@ -854,7 +950,7 @@ async function copyResults(){
   let ok=false;
   try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);ok=true;}}catch(_){}
   if(!ok){try{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(_){}}
-  msg('refs-msg',ok?'Résultats copiés : collez-les dans la conversation.':'Copie impossible : utilisez « Télécharger ».',ok?'ok':'err');
+  msg('copy-msg',ok?'Résultats copiés ✓ : allez dans la conversation avec Claude et collez-les.':'Copie impossible : touchez « Télécharger (.json) » à la place.',ok?'ok':'err');
   if(ok)setFeedback('Résultats copiés ✓','learn');
 }
 function downloadResults(){
@@ -872,6 +968,7 @@ $('ref-mcdb').addEventListener('change',updateStartButton);
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&B.stream&&!/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();snapNow();}});
 window.addEventListener('resize',layoutGuide);
 window.addEventListener('pagehide',stopStream);
+updateStartButton();
 // Pour les essais automatiques
 window.__bench={B,describe,sim,rank,variantsOf,perturb,evaluate,statsFor,handleCapture,loadCatalog,setCards,prepareRefs,blankTest,startTest,exportObject,tick,get catalog(){return catalog;}};
 </script>
