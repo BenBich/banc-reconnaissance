@@ -69,7 +69,11 @@ progress{width:100%;height:8px;margin-top:8px;accent-color:var(--red);}
 #prompt .nm{font-size:18px;font-weight:800;line-height:1.2;}
 #prompt .sb{font-size:12px;color:var(--dim);}
 #feedback{display:none;border-radius:var(--r);padding:9px 12px;margin:6px 0;font-size:14px;font-weight:700;}
-#feedback.on{display:block;}
+#feedback.on{display:flex;gap:10px;align-items:center;}
+#feedback img{width:44px;height:62px;object-fit:cover;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.25);background:var(--surf3);}
+#place-bar{position:sticky;bottom:10px;z-index:4;margin:8px 0;}
+#place-bar[hidden]{display:none;}
+#place-bar button{width:100%;font-size:20px;padding:16px 18px;box-shadow:0 4px 14px rgba(0,0,0,.28);}
 #feedback.ok{background:#dcfce7;color:#14532d;}
 #feedback.ko{background:#fee2e2;color:#7f1d1d;}
 #feedback.learn{background:#e0e7ff;color:#1e3a8a;}
@@ -109,7 +113,7 @@ details.faq{margin-top:10px;font-size:13px;color:var(--dim);}
 details.faq summary{cursor:pointer;font-weight:700;}
 details.faq p{margin:6px 0 0 2px;}
 img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:6px;background:var(--surf3);}
-#prompt.bigp img{width:104px;height:146px;}
+#prompt.bigp img{width:96px;height:134px;}
 @media (max-width:520px){.adv .grid{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -117,7 +121,7 @@ img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:
 <header class="top">
   <h1>Banc d'essai de reconnaissance des cartes</h1>
   <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien de ce que filme la caméra ne quitte votre téléphone : les calculs se font dans votre navigateur.</p>
-  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 6 · 30 octobre 2026 : test avec vos propres cartes (sans MarvelCDB, sans nom à saisir)</p>
+  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 7 · 30 octobre 2026 : la photo n'est prise qu'après votre appui sur « Carte en place »</p>
 </header>
 <main>
 
@@ -128,10 +132,10 @@ img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:
   <ol>
     <li><b>Vous préparez des cartes</b> de votre collection, avec leur sleeve : 30 cartes différentes, n'importe lesquelles.</li>
     <li><b>Vous démarrez la caméra</b>, au-dessus de la table.</li>
-    <li><b>Temps 1 : le téléphone les mémorise.</b> Une carte à la fois : vous la posez dans le cadre, un bip dit qu'elle est prise en photo, vous la retirez et la mettez de côté.</li>
-    <li><b>Temps 2 : il doit les retrouver.</b> Il affiche la photo d'une carte (dans le désordre) ; vous la retrouvez, vous la reposez dans le cadre, et il dit s'il l'a reconnue.</li>
+    <li><b>Temps 1 : le téléphone les mémorise.</b> Une carte à la fois : vous la posez dans le cadre, vous touchez <b>« Carte en place »</b>, un bip dit qu'elle est prise en photo, vous la retirez et la mettez de côté.</li>
+    <li><b>Temps 2 : il doit les retrouver.</b> Il affiche la photo d'une carte (dans le désordre) ; vous la retrouvez, vous la reposez dans le cadre, vous touchez <b>« Carte en place »</b>, et il dit s'il l'a reconnue.</li>
   </ol>
-  <div class="hint">Rien à saisir : ni adresse, ni nom de carte, ni MarvelCDB. À la fin, vous obtenez un pourcentage de cartes reconnues, à me renvoyer. Les réglages par défaut suffisent.</div>
+  <div class="hint">Rien à saisir : ni adresse, ni nom de carte, ni MarvelCDB. Le téléphone ne prend jamais de photo avant que vous ayez touché « Carte en place » : prenez votre temps. À la fin, vous obtenez un pourcentage de cartes reconnues, à me renvoyer. Les réglages par défaut suffisent.</div>
 </section>
 
 <section class="step" id="st1">
@@ -210,20 +214,23 @@ img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:
   </div>
   <ol class="steps">
     <li>Appuyez sur <b>Démarrer la caméra</b> et acceptez l'autorisation de la caméra.</li>
-    <li>Placez le téléphone au-dessus d'un <b>endroit vide</b> de la table : vous voyez la table à l'écran, avec un <b>cadre pointillé</b>. C'est là que viendra la carte.</li>
-    <li>Appuyez sur <b>Lancer le test</b>, puis <b>ne posez rien pendant 2 secondes</b> : le téléphone regarde la table vide.</li>
-    <li>Le téléphone vous dit quoi faire. <b>Temps 1</b> : posez une carte au choix à plat dans le cadre, sans bouger ; un bip dit qu'elle est mémorisée ; <b>retirez-la</b> et mettez-la de côté. <b>Temps 2</b> : il affiche la photo d'une carte ; retrouvez-la, posez-la à plat, puis retirez-la.</li>
+    <li>Placez le téléphone au-dessus d'un <b>endroit dégagé</b> de la table : vous voyez la table à l'écran, avec un <b>cadre pointillé</b>. C'est là que viendra chaque carte.</li>
+    <li>Appuyez sur <b>Lancer le test</b> : le téléphone vous dit quoi faire.</li>
+    <li><b>Pour chaque carte</b> : posez-la à plat dans le cadre (la main hors du cadre), puis touchez le gros bouton rouge <b>Carte en place</b>. Avant cet appui, rien ne compte. Après, le téléphone attend une seconde que l'image soit calme (ne touchez plus rien), puis un bip dit que la photo est prise.</li>
+    <li><b>Temps 1</b> : retirez la carte et mettez-la de côté. <b>Temps 2</b> : il affiche la photo d'une carte ; retrouvez-la, posez-la à plat, touchez <b>Carte en place</b>, puis retirez-la. Photo ratée ? <b>Refaire la dernière photo</b>.</li>
   </ol>
   <div class="ctl"><button type="button" class="pri big" id="btn-cam" onclick="startCamera()">Démarrer la caméra</button><button type="button" id="btn-switch" onclick="switchCamera()" disabled>Changer de caméra</button></div>
   <div id="cam"><video id="video" playsinline muted></video><div id="guide"></div><div id="cam-state"></div></div>
   <div class="msg" id="cam-msg" role="status"></div>
   <div id="prompt"><img id="p-img" alt=""><div><div class="ph" id="p-phase"></div><div class="nm" id="p-name"></div><div class="sb" id="p-sub"></div></div></div>
   <div id="feedback" role="status" aria-live="polite"></div>
+  <div id="place-bar" hidden><button type="button" class="pri" id="btn-place" onclick="cardInPlace()" disabled>✋ Carte en place</button></div>
   <div class="ctl">
     <button type="button" class="big" id="btn-start" onclick="startTest()" disabled>Lancer le test</button>
   </div>
   <div id="test-ctl" hidden>
     <div class="ctl">
+      <button type="button" id="btn-undo" onclick="undoLast()" disabled>↩ Refaire la dernière photo</button>
       <button type="button" id="btn-skip" onclick="skipCard()" disabled>Passer cette carte</button>
       <button type="button" id="btn-stop" onclick="stopTest(true)" disabled>Arrêter le test</button>
     </div>
@@ -232,7 +239,8 @@ img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:
       <button type="button" id="btn-snap" onclick="snapNow()" disabled>Prendre la photo maintenant</button>
     </div>
   </div>
-  <details class="adv"><summary>Réglages de la détection automatique (facultatif)</summary>
+  <details class="adv"><summary>Réglages (facultatif)</summary>
+    <label class="chk"><input type="checkbox" id="set-auto"><span>Photo automatique, sans le bouton « Carte en place »<small>Le téléphone décide seul quand la carte est posée (fonctionnement des versions 1 à 6) : il mesure d'abord la table vide pendant 2 secondes, puis prend la photo dès qu'une carte est posée et immobile. Il peut se tromper et photographier une carte pas encore en place.</small></span></label>
     <div class="grid">
       <div><label for="set-still">Immobilité (plus petit = plus exigeant) : <b id="v-still">4</b></label><input id="set-still" type="range" min="1" max="12" value="4"></div>
       <div><label for="set-frames">Images immobiles avant la photo : <b id="v-frames">5</b></label><input id="set-frames" type="range" min="2" max="14" value="5"></div>
@@ -243,10 +251,12 @@ img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:
   </details>
   <details class="faq"><summary>Ça ne marche pas ? Quelques réponses</summary>
     <p><b>La caméra ne s'allume pas.</b> Touchez le cadenas à gauche de l'adresse, puis « Autorisations » › « Appareil photo » › « Autoriser », et rechargez la page.</p>
-    <p><b>Le téléphone ne voit jamais ma carte.</b> Vérifiez que le cadre était vide au départ ; approchez ou éloignez le téléphone pour que la carte remplisse le cadre pointillé ; sinon touchez « Prendre la photo maintenant », ou baissez « Écart avec la table vide » dans les réglages.</p>
+    <p><b>Je touche « Carte en place » et rien ne se passe.</b> Le téléphone attend que l'image soit calme (jusqu'à 6 secondes) : ne touchez plus le téléphone après l'appui et ne bougez pas la carte. Au-delà, il prend la photo quand même.</p>
+    <p><b>La photo est mauvaise (carte mal posée, doigt dans le cadre…).</b> Elle s'affiche en petit à gauche du message : touchez « Refaire la dernière photo », reposez la carte, puis touchez à nouveau « Carte en place ».</p>
+    <p><b>Il dit « c'est encore la carte précédente ».</b> Retirez la carte précédente avant de poser la suivante.</p>
     <p><b>Il se trompe de carte.</b> C'est justement ce que le test mesure : continuez, c'est le résultat final qui compte.</p>
     <p><b>Pour un test plus sévère.</b> Entre le temps 1 et le temps 2, changez un peu l'angle du téléphone ou la lumière : une station fixe aura moins de variations, mais ce sera un bon moyen de voir jusqu'où ça tient.</p>
-    <p><b>J'ai bougé le téléphone.</b> Touchez « Remesurer la table vide » et ne posez rien pendant 2 secondes.</p>
+    <p><b>Je préfère que le téléphone décide seul.</b> Ouvrez « Réglages » juste en dessous et cochez « Photo automatique ». Dans ce mode, si vous avez bougé le téléphone, touchez « Remesurer la table vide » et ne posez rien pendant 2 secondes ; « Prendre la photo maintenant » force la photo.</p>
   </details>
 </section>
 
@@ -293,7 +303,8 @@ const B={
   test:null,           // {queue,qi,trials,startedAt}
   armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,imgVia:null,decoyLoaded:0,imgFail:0,
   tab:'own',nFind:10,mem:{n:0,dups:0,sims:[]},     // mode « mes propres cartes » : cartes à retrouver, bilan de la mémorisation
-  bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour
+  go:null,                                                    // appui sur « Carte en place » en cours : {t0} (voir manualTick)
+  bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour (mode automatique)
   guide:{x:0,y:0,w:0,h:0},
   audio:null
 };
@@ -698,6 +709,7 @@ async function startCamera(deviceId){
   }catch(e){msg('cam-msg',camError(e),'err');}
 }
 function stopStream(){
+  B.go=null;
   clearInterval(loopTimer);loopTimer=null;
   if(B.stream){B.stream.getTracks().forEach(t=>t.stop());B.stream=null;}
   keepAwake(false);
@@ -729,7 +741,9 @@ function layoutGuide(){
   B.guide={x:(vw-gw)/2,y:(vh-gh)/2,w:gw,h:gh};
   $('cam').style.aspectRatio=vw+' / '+vh;
   // Image verticale sur un téléphone : on borne la largeur (donc aussi la hauteur, le rapport est gardé) pour que l'image et l'invite tiennent ensemble à l'écran.
-  $('cam').style.maxWidth=Math.round(Math.min(520,Math.max(220,window.innerHeight*.62*vw/vh)))+'px';
+  // La hauteur de l'image est aussi bornée pour laisser la place à l'invite, au message et au gros bouton « Carte en place » (≈ 375 px).
+  const H=window.innerHeight,avail=Math.max(.45*H,Math.min(.62*H,H-375));
+  $('cam').style.maxWidth=Math.round(Math.min(520,Math.max(220,avail*vw/vh)))+'px';
   const g=$('guide').style;
   g.left=(B.guide.x/vw*100)+'%';g.top=(B.guide.y/vh*100)+'%';g.width=(B.guide.w/vw*100)+'%';g.height=(B.guide.h/vh*100)+'%';
 }
@@ -790,6 +804,58 @@ function remeasureBg(){
   $('prompt').classList.remove('on');
   setFeedback('Ne posez rien pendant 2 secondes : le téléphone regarde la table vide.','learn');
 }
+// ─── Mode « bouton » (par défaut) ───────────────────────────────────────────────
+// Le téléphone ne décide de rien : il attend l'appui sur « Carte en place », laisse l'image se calmer (le doigt vient de secouer
+// le téléphone, l'autofocus travaille), puis prend la photo. Avant l'appui, rien ne compte : ni mesure de la table vide, ni détection.
+// (Version 6 : la détection automatique avait pris une photo pendant qu'on posait la carte, et le test comptait une erreur.)
+const GO_WAIT=900,GO_MAX=6000;     // calme minimal après l'appui, puis attente maximale d'une image stable (au-delà : photo prise quand même, signalée « instable »)
+const isManual=()=>!$('set-auto').checked;
+function cardInPlace(){
+  if(!B.test||B.go||!isManual())return;
+  if(!B.stream||!B.guide.w){setFeedback('La caméra n’est pas allumée : touchez « Démarrer la caméra ».','ko');return;}
+  B.test.last=null;
+  B.go={t0:Date.now()};
+  try{if(navigator.vibrate)navigator.vibrate(25);}catch(_){}
+  setFeedback('Ne bougez plus : la photo est prise dans un instant…','learn');
+  syncTestUI();
+}
+function manualTick(cur,T,stillNow){
+  $('cam').classList.toggle('armed-ok',!!B.go&&stillNow);      // cadre vert : appui reçu et image calme
+  if(!B.go){setChips([[stillNow?'image stable':'ça bouge',stillNow],['carte posée ? touchez « Carte en place »',false]]);return;}
+  const el=Date.now()-B.go.t0,calm=B.still>=T.frames;
+  if(el<GO_WAIT||(!calm&&el<GO_MAX)){setChips([['ne bougez plus'+(el<GO_WAIT?' ('+Math.ceil((GO_WAIT-el)/1000)+')':''),false]]);return;}
+  B.go=null;
+  // Un double appui, ou la carte précédente jamais retirée : la même carte serait photographiée pour la carte suivante.
+  if(B.capSmall&&meanAbsDiff(cur,B.capSmall)<T.leave*.45){
+    setFeedback('C’est encore la carte précédente : retirez-la, posez la suivante, puis touchez « Carte en place ».','ko');beep(false);syncTestUI();return;
+  }
+  capture('bouton',!calm);
+}
+// Boutons du test : le gros bouton n'existe qu'en mode « bouton » ; « Refaire la dernière photo » n'est actif que juste après une photo.
+function syncTestUI(){
+  const t=B.test,man=isManual();
+  $('place-bar').hidden=!(t&&man);
+  const pl=$('btn-place'),label=B.go?'Ne bougez plus…':'✋ Carte en place';
+  if(pl.textContent!==label)pl.textContent=label;
+  pl.disabled=!t||!!B.go;
+  $('btn-undo').disabled=!(t&&t.last);
+  $('btn-bg').hidden=man;$('btn-snap').hidden=man;      // utiles seulement en mode automatique
+}
+// Annule la dernière photo enregistrée (carte mal posée, doigt dans le cadre…) : la carte est redemandée.
+function undoLast(){
+  const t=B.test;if(!t||!t.last)return;
+  const L=t.last,item=t.queue[L.qi];
+  t.last=null;B.go=null;t.undone=(t.undone||0)+1;
+  if(item.phase==='learn'){
+    B.refs.own.delete(item.card.code);
+    if(item.card.own){delete item.card.photo;B.mem.n--;B.mem.sims.pop();}
+    if(t.own&&t.testsQueued){t.queue=t.queue.filter(q=>q.phase==='learn');t.testsQueued=false;}   // le temps 2 sera recomposé
+  }else t.trials.pop();
+  t.qi=L.qi;B.capSmall=null;B.still=0;
+  showPrompt();
+  setFeedback('Photo annulée. Posez la carte, puis touchez « Carte en place ».','learn');
+  syncTestUI();
+}
 function tick(){
   const video=$('video');
   if(!B.stream||video.readyState<2||!B.guide.w)return;
@@ -801,6 +867,7 @@ function tick(){
   B.still=stillNow?B.still+1:0;
   cam.classList.toggle('still',stillNow);
   if(!B.test){setChips([[stillNow?'image stable':'ça bouge',stillNow]]);cam.classList.remove('armed-ok');return;}
+  if(isManual()){manualTick(cur,T,stillNow);return;}
   sceneMasks();
   const sc=grabScene();
   // 1. Mesure du fond : cadre vide et immobile pendant 2 s. La carte à présenter n'est annoncée qu'ensuite.
@@ -831,14 +898,14 @@ function tick(){
   const ok=present&&B.still>=T.frames;
   cam.classList.toggle('armed-ok',ok);
   setChips([[stillNow?'image stable':'ça bouge',stillNow],[present?'carte détectée':moved?'téléphone déplacé : nouvelle mesure':'rien dans le cadre',present],['écart '+Math.round(dd.inD),false],['présentez la carte',false]]);
-  if(ok)capture();
+  if(ok)capture('auto');
 }
-function capture(){
+function capture(how,shaky){      // how : 'bouton' (Carte en place), 'auto' (détection automatique) ou 'direct' (photo immédiate)
   const g=B.guide,video=$('video'),mx=g.w*.06,my=g.h*.06;
   bctx.fillStyle='#777';bctx.fillRect(0,0,300,420);
   bctx.drawImage(video,g.x-mx,g.y-my,g.w+2*mx,g.h+2*my,0,0,300,420);
-  B.capSmall=B.lastSmall;B.lastCapAt=Date.now();B.armed=false;B.still=0;
-  handleCapture(big);
+  B.capSmall=B.lastSmall;B.lastCapAt=Date.now();B.armed=false;B.still=0;B.go=null;
+  handleCapture(big,{how:how||'direct',shaky:!!shaky});
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -853,6 +920,7 @@ function refsReady(){
 function updateStartButton(){
   const ready=refsReady()&&!!B.stream;
   $('btn-start').disabled=!ready||!!B.test;
+  $('btn-start').hidden=!!B.test;                          // pendant le test, la place est pour le gros bouton « Carte en place »
   $('btn-cam').classList.toggle('pri',!B.stream);          // un seul gros bouton rouge à la fois : celui de l'étape en cours
   $('btn-start').classList.toggle('pri',ready&&!B.test);
   updateNext();
@@ -891,16 +959,20 @@ function startTest(){
   if(own)B.mem={n:0,dups:0,sims:[]};                      // le temps 2 est préparé quand le temps 1 est fini (voir advance)
   else shuffle(B.cards.slice()).forEach(c=>queue.push({card:c,phase:'test'}));
   try{B.audio=B.audio||new (window.AudioContext||window.webkitAudioContext)();B.audio.resume();}catch(_){}  // le son demande un geste de l'utilisateur
-  B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0,own,testsQueued:!own};
-  B.armed=true;B.still=0;B.capSmall=null;B.bg=null;B.calibSince=0;
+  B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0,own,testsQueued:!own,last:null,undone:0,shaky:0};
+  B.armed=true;B.still=0;B.capSmall=null;B.bg=null;B.calibSince=0;B.go=null;
   updateNext();
-  $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;$('btn-bg').disabled=false;$('test-ctl').hidden=false;
+  $('btn-start').disabled=true;$('btn-start').hidden=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;$('btn-bg').disabled=false;$('test-ctl').hidden=false;
   $('summary').innerHTML='<div class="msg">Test en cours…</div>';
   $('btn-copy').disabled=true;$('btn-dl').disabled=true;
   showPrompt();
-  $('prompt').classList.remove('on');   // la carte à présenter n'est annoncée qu'une fois le fond vide mesuré (voir tick)
-  setFeedback('Ne posez rien pendant 2 secondes : le téléphone regarde la table vide.','learn');
-  $('cam').scrollIntoView({block:'center',behavior:'smooth'});
+  if(isManual())setFeedback('Prenez votre temps : aucune photo n’est prise avant votre appui sur «\u00a0Carte en place\u00a0».','learn');
+  else{
+    $('prompt').classList.remove('on');   // la carte à présenter n'est annoncée qu'une fois le fond vide mesuré (voir tick)
+    setFeedback('Ne posez rien pendant 2 secondes : le téléphone regarde la table vide.','learn');
+  }
+  syncTestUI();
+  $('cam').scrollIntoView({block:'start',behavior:'smooth'});
 }
 function showPrompt(){
   const t=B.test,item=t.queue[t.qi];
@@ -910,17 +982,20 @@ function showPrompt(){
   $('prompt').classList.toggle('bigp',!!item.card.own&&!learn);
   $('p-img').src=item.card.own?(learn?PH_IMG:(item.card.photo||PH_IMG)):item.card.img;
   $('p-phase').textContent=learn?`TEMPS 1 SUR 2 · CARTE ${t.qi+1} / ${nLearn}`:(nLearn?`TEMPS 2 SUR 2 · CARTE ${t.qi-nLearn+1} / ${nTest}`:`CARTE ${t.qi+1} / ${nTest}`);
+  const man=isManual();
   if(item.card.own){
     $('p-name').textContent=learn?'Une carte au choix':'Retrouvez cette carte';
-    $('p-sub').textContent=learn?'Prenez une carte de votre collection que vous n’avez pas encore montrée et posez-la à plat dans le cadre : le téléphone la mémorise. Retirez-la, puis mettez-la de côté.':'C’est la photo prise au temps 1. La carte est parmi celles mises de côté : posez-la à plat dans le cadre, sans bouger.';
+    $('p-sub').textContent=learn
+      ?(man?'Posez à plat dans le cadre une carte pas encore montrée (la main hors du cadre), puis touchez « Carte en place ». Retirez-la ensuite et mettez-la de côté.':'Prenez une carte de votre collection que vous n’avez pas encore montrée et posez-la à plat dans le cadre : le téléphone la mémorise. Retirez-la, puis mettez-la de côté.')
+      :(man?'C’est la photo prise au temps 1. Retrouvez la carte parmi celles mises de côté, posez-la à plat dans le cadre, puis touchez « Carte en place ».':'C’est la photo prise au temps 1. La carte est parmi celles mises de côté : posez-la à plat dans le cadre, sans bouger.');
     return;
   }
   $('p-name').textContent=item.card.name;
-  $('p-sub').textContent=(item.card.pack?item.card.pack+' · ':'')+(learn?'Posez-la à plat dans le cadre : le téléphone la mémorise.':'Posez-la à plat dans le cadre, sans bouger.');
+  $('p-sub').textContent=(item.card.pack?item.card.pack+' · ':'')+(learn?(man?'Posez-la à plat dans le cadre, puis touchez « Carte en place » : le téléphone la mémorise.':'Posez-la à plat dans le cadre : le téléphone la mémorise.'):(man?'Posez-la à plat dans le cadre, puis touchez « Carte en place ».':'Posez-la à plat dans le cadre, sans bouger.'));
 }
 function snapNow(){
   if(!B.stream||!B.guide.w)return;
-  if(B.test){capture();return;}
+  if(B.test){capture('direct');return;}
   // sans test en cours : simple aperçu de ce que la méthode « voit » (classement parmi les références prêtes)
   const g=B.guide,video=$('video'),mx=g.w*.06,my=g.h*.06;
   bctx.drawImage(video,g.x-mx,g.y-my,g.w+2*mx,g.h+2*my,0,0,300,420);
@@ -929,40 +1004,52 @@ function snapNow(){
   const r=rank(variantsOf(big),refs).slice(0,3);
   setFeedback('Je vois : '+r.map(x=>`${x.name} (${Math.round(x.score*100)} %)`).join(' · '),'learn');
 }
-function setFeedback(text,kind){const f=$('feedback');f.className='on '+kind;f.textContent=text;}
-function handleCapture(canvas){
+function setFeedback(text,kind,img){      // img : vignette de la photo qui vient d'être prise (pour voir tout de suite si elle est bonne)
+  const f=$('feedback');f.className='on '+kind;f.textContent=text;
+  if(img){const i=document.createElement('img');i.src=img;i.alt='photo prise';f.prepend(i);}
+}
+function handleCapture(canvas,opt){
   const t=B.test;if(!t)return;
-  const item=t.queue[t.qi],t0=performance.now();
+  opt=opt||{};
+  const item=t.queue[t.qi],t0=performance.now(),qi0=t.qi;
+  t.last=null;                                   // « Refaire la dernière photo » : seulement juste après une photo enregistrée
+  if(opt.shaky)t.shaky=(t.shaky||0)+1;
+  const warn=opt.shaky?' ⚠ Image instable : si la photo est floue, touchez « Refaire la dernière photo ».':'';
   const variants=variantsOf(canvas);
   if(item.phase==='learn'&&item.card.own){
     const r=B.refs.own.size?rank(variants,B.refs.own):[],best=r.length?r[0]:null;
     if(best&&best.score>=DUP_SIM){
       B.mem.dups++;
       setFeedback(`Cette carte ressemble beaucoup à la « ${best.name} » déjà mémorisée : montrez-en une autre. (Si c’est bien une autre carte, touchez « Passer cette carte ».)`,'ko');beep(false);
+      syncTestUI();
       return;
     }
     item.card.photo=thumbOf(canvas,120,168,.7);
     B.refs.own.set(item.card.code,{desc:variants[0],name:item.card.name});
     B.mem.n++;B.mem.sims.push(best?+best.score.toFixed(3):0);
-    setFeedback(`Mémorisée (${item.card.name} sur ${t.queue.filter(q=>q.phase==='learn').length}). Retirez-la et mettez-la de côté.`,'learn');beep(true);
+    setFeedback(`Mémorisée (${item.card.name} sur ${t.queue.filter(q=>q.phase==='learn').length}). Retirez-la et mettez-la de côté.${warn}`,'learn',item.card.photo);beep(true);
+    t.last={qi:qi0};
   }else if(item.phase==='learn'){
     B.refs.own.set(item.card.code,{desc:variants[0],name:item.card.name});
-    setFeedback(`Mémorisée : ${item.card.name}. Retirez-la.`,'learn');beep(true);
+    setFeedback(`Mémorisée : ${item.card.name}. Retirez-la.${warn}`,'learn',thumbOf(canvas,60,84,.6));beep(true);
+    t.last={qi:qi0};
   }else{
     const res=evaluate(variants,item.card.code);
     const ms=Math.round(performance.now()-t0);
     const main=res.mcdb||res.own;
     const thumb=(main&&!main.ok1)?thumbOf(canvas):null;
-    t.trials.push({asked:item.card.code,name:item.card.name,ms,results:res,thumb});
+    t.trials.push({asked:item.card.code,name:item.card.name,ms,results:res,thumb,how:opt.how||null,shaky:!!opt.shaky});
     if(!main){setFeedback('Carte ignorée (pas de référence).','ko');}
     else{
       const ok=main.ok1;
-      setFeedback((ok?'✓ Reconnue : ':'✗ Pas reconnue — ')+(ok?item.card.name:`j’ai vu « ${main.top[0].n} » au lieu de « ${item.card.name} »`)+` (confiance ${Math.round(main.score*100)} %)`,ok?'ok':'ko');
+      setFeedback((ok?'✓ Reconnue : ':'✗ Pas reconnue — ')+(ok?item.card.name:`j’ai vu « ${main.top[0].n} » au lieu de « ${item.card.name} »`)+` (confiance ${Math.round(main.score*100)} %)${warn}`,ok?'ok':'ko',thumbOf(canvas,60,84,.6));
       beep(ok);
     }
+    t.last={qi:qi0};
   }
   t.qi++;
   advance();
+  syncTestUI();
 }
 function thumbOf(canvas,w,h,q){
   w=w||64;h=h||90;
@@ -999,15 +1086,17 @@ function skipCard(){
   const t=B.test;if(!t)return;
   const item=t.queue[t.qi];
   if(item.phase==='test'){t.trials.push({asked:item.card.code,name:item.card.name,skipped:true,results:{}});t.skipped++;}
-  t.qi++;B.still=0;
+  t.qi++;B.still=0;t.last=null;B.go=null;
   // Si la carte passée est encore dans le cadre, elle doit d'abord partir : sinon elle serait prise pour la suivante.
   if(B.bg&&B.dd&&B.dd.inD>+$('set-present').value){B.armed=false;B.capSmall=B.lastSmall;B.lastCapAt=Date.now();}else B.armed=true;
   advance();
+  syncTestUI();
 }
 function stopTest(user){
   const t=B.test;if(!t)return;
-  B.test=null;
+  B.test=null;B.go=null;
   $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;$('test-ctl').hidden=true;
+  syncTestUI();
   updateStartButton();
   if(user&&t.trials.length)summarize(t,true);
   else if(user)$('summary').innerHTML='<div class="msg">Test arrêté avant la première carte.</div>';
@@ -1015,8 +1104,9 @@ function stopTest(user){
 }
 function finishTest(){
   const t=B.test;
-  B.test=null;B.last=t;
+  B.test=null;B.last=t;B.go=null;
   $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;$('test-ctl').hidden=true;
+  syncTestUI();
   updateStartButton();
   summarize(t,false);
   beep(true);
@@ -1073,11 +1163,11 @@ function exportObject(){
     appareil:{agent:navigator.userAgent,camera:B.stream?`${v.videoWidth}×${v.videoHeight}`:null,cadre:Math.round((B.guide.w/(v.videoHeight||1))*100)/100},
     mode:(B.cards[0]&&B.cards[0].own)?'mes-cartes':'marvelcdb',
     memorisation:(B.cards[0]&&B.cards[0].own)?{memorisees:B.mem.n,aRetrouver:B.nFind,doublonsRefuses:B.mem.dups,ressemblanceMax:B.mem.sims.length?Math.max.apply(null,B.mem.sims):0,ressemblanceMoyenne:+avg(B.mem.sims).toFixed(3)}:null,
-    reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,ecartFond:+$('set-present').value,guide:+$('set-guide').value,leurres:B.decoys.length,leurresDemandes:B.decoys.length,leurresCharges:B.decoyLoaded||0,imagesEchecs:B.imgFail||0,imagesVia:B.imgVia||null,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
+    reglages:{declenchement:isManual()?'bouton':'auto',photosRefaites:t.undone||0,photosInstables:t.shaky||0,still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,ecartFond:+$('set-present').value,guide:+$('set-guide').value,leurres:B.decoys.length,leurresDemandes:B.decoys.length,leurresCharges:B.decoyLoaded||0,imagesEchecs:B.imgFail||0,imagesVia:B.imgVia||null,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
     cartes:B.cards.map(c=>({code:c.code,nom:c.name})),
     essaiABlanc:B.blank||null,
     resume:t.stats||null,
-    essais:t.trials.map(x=>({code:x.asked,nom:x.name,ms:x.ms||null,passee:!!x.skipped,resultats:x.results,vignetteSiRate:x.thumb||null})),
+    essais:t.trials.map(x=>({code:x.asked,nom:x.name,ms:x.ms||null,passee:!!x.skipped,declenche:x.how||null,instable:!!x.shaky,resultats:x.results,vignetteSiRate:x.thumb||null})),
     dureeSecondes:Math.round((Date.now()-t.startedAt)/1000)
   };
 }
@@ -1102,8 +1192,16 @@ function downloadResults(){
 showTab('own');
 ['still','frames','leave','present','guide'].forEach(k=>$('set-'+k).addEventListener('input',()=>{$('v-'+k).textContent=$('set-'+k).value;if(k==='guide')layoutGuide();}));
 $('ref-own').addEventListener('change',updateStartButton);
+$('set-auto').addEventListener('change',()=>{      // changement de mode en plein test : on repart proprement
+  if(B.test){
+    B.go=null;B.test.last=null;
+    if(isManual()){B.bg=null;showPrompt();setFeedback('Prenez votre temps : aucune photo n’est prise avant votre appui sur «\u00a0Carte en place\u00a0».','learn');}
+    else remeasureBg();
+  }
+  syncTestUI();
+});
 $('ref-mcdb').addEventListener('change',updateStartButton);
-document.addEventListener('keydown',e=>{if(e.code==='Space'&&B.stream&&!/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();snapNow();}});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&B.stream&&!/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();if(B.test&&isManual())cardInPlace();else snapNow();}});
 window.addEventListener('resize',layoutGuide);
 window.addEventListener('pagehide',stopStream);
 updateStartButton();
