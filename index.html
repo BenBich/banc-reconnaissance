@@ -95,6 +95,7 @@ h3.res{font-size:14px;margin-top:14px;font-weight:800;}
 <header class="top">
   <h1>Banc d'essai de reconnaissance des cartes</h1>
   <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien n'est envoyé : la caméra et les calculs restent dans votre navigateur.</p>
+  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 2 · 30 octobre 2026 : le test mesure d'abord le fond vide</p>
 </header>
 <main>
 
@@ -141,7 +142,7 @@ h3.res{font-size:14px;margin-top:14px;font-weight:800;}
 
 <section class="step" id="st3">
   <h2><span class="n">3</span>Le test avec la caméra</h2>
-  <div class="sub">Posez le téléphone sur un support (ou tenez-le fixe) au-dessus d'un tapis uni, la carte à plat dans le cadre. On vous demande une carte à la fois : présentez-la, retirez-la, présentez la suivante.</div>
+  <div class="sub">Posez le téléphone sur un support (ou tenez-le fixe) au-dessus d'une surface où poser les cartes à plat (une feuille de papier unie aide, mais n'est pas obligatoire). Au lancement, le test mesure d'abord le fond : gardez le cadre vide 2 secondes. Ensuite on vous demande une carte à la fois : posez-la dans le cadre, retirez-la, posez la suivante.</div>
   <div class="ctl"><button type="button" class="pri" id="btn-cam" onclick="startCamera()">Démarrer la caméra</button><button type="button" id="btn-switch" onclick="switchCamera()" disabled>Autre caméra</button></div>
   <div id="cam"><video id="video" playsinline muted></video><div id="guide"></div><div id="cam-state"></div></div>
   <div class="msg" id="cam-msg" role="status"></div>
@@ -151,6 +152,7 @@ h3.res{font-size:14px;margin-top:14px;font-weight:800;}
     <button type="button" class="pri" id="btn-start" onclick="startTest()" disabled>Lancer le test</button>
     <button type="button" id="btn-snap" onclick="snapNow()" disabled>Capturer maintenant</button>
     <button type="button" id="btn-skip" onclick="skipCard()" disabled>Passer cette carte</button>
+    <button type="button" id="btn-bg" onclick="remeasureBg()" disabled>Mesurer le fond</button>
     <button type="button" id="btn-stop" onclick="stopTest(true)" disabled>Arrêter</button>
   </div>
   <details class="adv"><summary>Réglages de la détection automatique</summary>
@@ -158,6 +160,7 @@ h3.res{font-size:14px;margin-top:14px;font-weight:800;}
       <div><label for="set-still">Immobilité (plus petit = plus exigeant) : <b id="v-still">4</b></label><input id="set-still" type="range" min="1" max="12" value="4"></div>
       <div><label for="set-frames">Images immobiles avant capture : <b id="v-frames">5</b></label><input id="set-frames" type="range" min="2" max="14" value="5"></div>
       <div><label for="set-leave">Seuil « carte retirée » : <b id="v-leave">14</b></label><input id="set-leave" type="range" min="4" max="40" value="14"></div>
+      <div><label for="set-present">Écart au fond pour voir une carte : <b id="v-present">12</b></label><input id="set-present" type="range" min="4" max="40" value="12"></div>
       <div><label for="set-guide">Taille du cadre : <b id="v-guide">78</b> %</label><input id="set-guide" type="range" min="50" max="92" value="78"></div>
     </div>
   </details>
@@ -200,6 +203,7 @@ const B={
   stream:null,devices:[],devIdx:0,
   test:null,           // {queue,qi,trials,startedAt}
   armed:false,still:0,lastSmall:null,lastCapAt:0,
+  bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour
   guide:{x:0,y:0,w:0,h:0},
   audio:null
 };
@@ -574,28 +578,88 @@ function grabSmall(){
 const meanAbsDiff=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length;};
 function stdev(a){let m=0;for(let i=0;i<a.length;i++)m+=a[i];m/=a.length;let s=0;for(let i=0;i<a.length;i++){const d=a[i]-m;s+=d*d;}return Math.sqrt(s/a.length);}
 function setChips(items){$('cam-state').innerHTML=items.map(([t,ok])=>`<span class="${ok?'ok':''}">${esc(t)}</span>`).join('');}
+// Détection de la carte : écart entre l'image et le FOND VIDE mesuré au lancement du test.
+// (Avant, tout cadre immobile « avec du détail » — un bureau, un clavier — passait pour une carte.)
+const GW=24,GH=32;
+const scnCv=document.createElement('canvas');scnCv.width=GW;scnCv.height=GH;
+const scnCtx=scnCv.getContext('2d',{willReadFrequently:true});
+function grabScene(){      // toute l'image, en couleurs, sur une grille grossière GW×GH
+  const v=$('video');
+  scnCtx.drawImage(v,0,0,v.videoWidth,v.videoHeight,0,0,GW,GH);
+  const d=scnCtx.getImageData(0,0,GW,GH).data,P=new Float32Array(GW*GH*3);
+  for(let i=0,j=0;i<d.length;i+=4){P[j++]=d[i];P[j++]=d[i+1];P[j++]=d[i+2];}
+  return P;
+}
+function sceneMasks(){     // cases dans le cadre / cases du pourtour (hors cadre, avec 3 % de marge)
+  const g=B.guide,v=$('video'),key=[g.x,g.y,g.w,g.h,v.videoWidth,v.videoHeight].join();
+  if(B.maskKey===key)return;
+  const inn=[],ring=[],mx=.03*v.videoWidth,my=.03*v.videoHeight;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    const cx=(x+.5)/GW*v.videoWidth,cy=(y+.5)/GH*v.videoHeight,i=y*GW+x;
+    if(cx>=g.x&&cx<=g.x+g.w&&cy>=g.y&&cy<=g.y+g.h)inn.push(i);
+    else if(cx<g.x-mx||cx>g.x+g.w+mx||cy<g.y-my||cy>g.y+g.h+my)ring.push(i);
+  }
+  B.mIn=inn;B.mRing=ring;B.maskKey=key;
+}
+function sceneDiff(cur,bg){   // écart moyen (0-255) dans le cadre et sur le pourtour, la lumière globale étant compensée
+  const off=[0,0,0];
+  if(B.mRing.length>=24)for(let c=0;c<3;c++){const d=B.mRing.map(i=>cur[i*3+c]-bg[i*3+c]).sort((a,b)=>a-b);off[c]=d[d.length>>1];}
+  const mean=idx=>{let s=0;for(const i of idx)for(let c=0;c<3;c++)s+=Math.abs(cur[i*3+c]-bg[i*3+c]-off[c]);return idx.length?s/(idx.length*3):0;};
+  return{inD:mean(B.mIn),ringD:mean(B.mRing),off};
+}
+function fondMesure(){
+  setFeedback('Fond mesuré. Présentez la carte demandée.','learn');
+  $('prompt').classList.add('on');
+  beep(true);
+}
+function remeasureBg(){
+  if(!B.test)return;
+  B.bg=null;B.calibSince=0;B.armed=true;B.still=0;
+  $('prompt').classList.remove('on');
+  setFeedback('Mesure du fond : gardez le cadre vide pendant 2 secondes…','learn');
+}
 function tick(){
   const video=$('video');
   if(!B.stream||video.readyState<2||!B.guide.w)return;
-  const cur=grabSmall(),T={still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value};
+  const cur=grabSmall(),T={still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,present:+$('set-present').value};
   const motion=B.lastSmall?meanAbsDiff(cur,B.lastSmall):99,tex=stdev(cur);
   B.lastSmall=cur;
   const cam=$('cam');
   const stillNow=motion<T.still;
   B.still=stillNow?B.still+1:0;
   cam.classList.toggle('still',stillNow);
-  if(!B.test){setChips([[stillNow?'image stable':'ça bouge',stillNow],[tex>10?'carte ou motif détecté':'cadre uni',tex>10]]);cam.classList.remove('armed-ok');return;}
-  // La carte précédente doit d'abord quitter le cadre (ou être remplacée) avant d'en accepter une nouvelle.
-  if(!B.armed){
-    const sinceCap=Date.now()-B.lastCapAt;
-    const diff=B.capSmall?meanAbsDiff(cur,B.capSmall):99;
-    if(diff>T.leave||sinceCap>9000){B.armed=true;B.still=0;}
-    setChips([['retirez la carte',false]]);cam.classList.remove('armed-ok');
+  if(!B.test){setChips([[stillNow?'image stable':'ça bouge',stillNow],[tex>10?'image avec du détail':'cadre uni',tex>10]]);cam.classList.remove('armed-ok');return;}
+  sceneMasks();
+  const sc=grabScene();
+  // 1. Mesure du fond : cadre vide et immobile pendant 2 s. La carte à présenter n'est annoncée qu'ensuite.
+  if(!B.bg){
+    if(!stillNow||!B.calibSince)B.calibSince=Date.now();
+    const left=Math.ceil((2000-(Date.now()-B.calibSince))/1000);
+    setChips([['mesure du fond : gardez le cadre vide'+(stillNow&&left>0?' ('+left+')':''),false]]);
+    cam.classList.remove('armed-ok');
+    if(Date.now()-B.calibSince>=2000){B.bg=sc;B.still=0;B.calibSince=0;fondMesure();}
     return;
   }
-  cam.classList.toggle('armed-ok',B.still>=T.frames&&tex>10);
-  setChips([[stillNow?'image stable':'ça bouge',stillNow],[tex>10?'carte détectée':'cadre uni',tex>10],['présentez la carte',false]]);
-  if(B.still>=T.frames&&tex>10)capture();
+  const dd=B.dd=sceneDiff(sc,B.bg);
+  const changed=dd.inD>T.present;
+  const moved=changed&&B.mRing.length>=24&&dd.ringD>6&&dd.ringD>.6*dd.inD;   // tout a bougé, pourtour compris : c'est la caméra, pas une carte
+  const present=changed&&!moved&&tex>10;
+  // 2. La carte précédente doit d'abord quitter le cadre (retour au fond vide) ou être remplacée par une autre.
+  if(!B.armed){
+    const gone=dd.inD<T.present*.6;
+    const swapped=present&&B.still>=T.frames&&B.capSmall&&meanAbsDiff(cur,B.capSmall)>T.leave;
+    if(gone||swapped){B.armed=true;if(gone)B.still=0;}
+    setChips([['retirez la carte',false]].concat(Date.now()-B.lastCapAt>10000?[['bloqué ? videz le cadre, puis « Mesurer le fond »',false]]:[]));
+    cam.classList.remove('armed-ok');
+    return;
+  }
+  // 3. Fond vide : il suit la lumière. Caméra déplacée : on le mesure à nouveau. Carte posée et immobile : capture.
+  if(!changed&&stillNow)for(let i=0;i<sc.length;i++)B.bg[i]+=.1*(sc[i]-dd.off[i%3]-B.bg[i]);
+  if(moved&&B.still>=T.frames){B.bg=sc;B.still=0;}
+  const ok=present&&B.still>=T.frames;
+  cam.classList.toggle('armed-ok',ok);
+  setChips([[stillNow?'image stable':'ça bouge',stillNow],[present?'carte détectée':moved?'fond déplacé : nouvelle mesure':'cadre vide',present],['écart '+Math.round(dd.inD),false],['présentez la carte',false]]);
+  if(ok)capture();
 }
 function capture(){
   const g=B.guide,video=$('video'),mx=g.w*.06,my=g.h*.06;
@@ -634,12 +698,13 @@ function startTest(){
   shuffle(B.cards.slice()).forEach(c=>queue.push({card:c,phase:'test'}));
   try{B.audio=B.audio||new (window.AudioContext||window.webkitAudioContext)();B.audio.resume();}catch(_){}  // le son demande un geste de l'utilisateur
   B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0};
-  B.armed=true;B.still=0;B.capSmall=null;
-  $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;
-  $('feedback').className='';
+  B.armed=true;B.still=0;B.capSmall=null;B.bg=null;B.calibSince=0;
+  $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;$('btn-bg').disabled=false;
   $('summary').innerHTML='<div class="msg">Test en cours…</div>';
   $('btn-copy').disabled=true;$('btn-dl').disabled=true;
   showPrompt();
+  $('prompt').classList.remove('on');   // la carte à présenter n'est annoncée qu'une fois le fond vide mesuré (voir tick)
+  setFeedback('Mesure du fond : gardez le cadre vide pendant 2 secondes…','learn');
   $('cam').scrollIntoView({block:'center',behavior:'smooth'});
 }
 function showPrompt(){
@@ -706,13 +771,15 @@ function skipCard(){
   const t=B.test;if(!t)return;
   const item=t.queue[t.qi];
   if(item.phase==='test'){t.trials.push({asked:item.card.code,name:item.card.name,skipped:true,results:{}});t.skipped++;}
-  t.qi++;B.armed=true;B.still=0;
+  t.qi++;B.still=0;
+  // Si la carte passée est encore dans le cadre, elle doit d'abord partir : sinon elle serait prise pour la suivante.
+  if(B.bg&&B.dd&&B.dd.inD>+$('set-present').value){B.armed=false;B.capSmall=B.lastSmall;B.lastCapAt=Date.now();}else B.armed=true;
   if(t.qi>=t.queue.length)finishTest();else showPrompt();
 }
 function stopTest(user){
   const t=B.test;if(!t)return;
   B.test=null;
-  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;
+  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;
   updateStartButton();
   if(user&&t.trials.length)summarize(t,true);
   else if(user)$('summary').innerHTML='<div class="msg">Test arrêté avant la première carte.</div>';
@@ -721,7 +788,7 @@ function stopTest(user){
 function finishTest(){
   const t=B.test;
   B.test=null;B.last=t;
-  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;
+  $('prompt').classList.remove('on');$('btn-stop').disabled=true;$('btn-skip').disabled=true;$('btn-bg').disabled=true;
   updateStartButton();
   summarize(t,false);
   beep(true);
@@ -773,7 +840,7 @@ function exportObject(){
     format:'machine-marvel/banc-reconnaissance',version:1,
     date:new Date().toISOString(),
     appareil:{agent:navigator.userAgent,camera:B.stream?`${v.videoWidth}×${v.videoHeight}`:null,cadre:Math.round((B.guide.w/(v.videoHeight||1))*100)/100},
-    reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,guide:+$('set-guide').value,leurres:B.decoys.length,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
+    reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,ecartFond:+$('set-present').value,guide:+$('set-guide').value,leurres:B.decoys.length,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
     cartes:B.cards.map(c=>({code:c.code,nom:c.name})),
     essaiABlanc:B.blank||null,
     resume:t.stats||null,
@@ -799,7 +866,7 @@ function downloadResults(){
 }
 
 // Réglages affichés
-['still','frames','leave','guide'].forEach(k=>$('set-'+k).addEventListener('input',()=>{$('v-'+k).textContent=$('set-'+k).value;if(k==='guide')layoutGuide();}));
+['still','frames','leave','present','guide'].forEach(k=>$('set-'+k).addEventListener('input',()=>{$('v-'+k).textContent=$('set-'+k).value;if(k==='guide')layoutGuide();}));
 $('ref-own').addEventListener('change',updateStartButton);
 $('ref-mcdb').addEventListener('change',updateStartButton);
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&B.stream&&!/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();snapNow();}});
