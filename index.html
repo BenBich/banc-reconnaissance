@@ -115,7 +115,7 @@ details.faq p{margin:6px 0 0 2px;}
 <header class="top">
   <h1>Banc d'essai de reconnaissance des cartes</h1>
   <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien de ce que filme la caméra ne quitte votre téléphone : les calculs se font dans votre navigateur.</p>
-  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 4 · 30 octobre 2026 : photos officielles lues même si MarvelCDB les bloque</p>
+  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 5 · 30 octobre 2026 : cartes en plus téléchargées plus patiemment (essais répétés, pauses, seconde passe)</p>
 </header>
 <main>
 
@@ -272,7 +272,7 @@ const B={
   corsBlocked:false,
   stream:null,devices:[],devIdx:0,
   test:null,           // {queue,qi,trials,startedAt}
-  armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,imgVia:null,
+  armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,imgVia:null,decoyLoaded:0,imgFail:0,
   bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour
   guide:{x:0,y:0,w:0,h:0},
   audio:null
@@ -447,11 +447,14 @@ function variantsOf(big){
 // ═══════════════════════════════════════════════════════════════════════════
 // RÉFÉRENCES
 // ═══════════════════════════════════════════════════════════════════════════
-function loadImage(url,cors){
+function loadImage(url,cors,maxMs){
   return new Promise((res,rej)=>{
     const im=new Image();
     if(cors)im.crossOrigin='anonymous';
-    im.onload=()=>res(im);im.onerror=()=>rej(new Error('image'));
+    // sans délai maximum, une demande qui reste sans réponse bloquerait tout le téléchargement
+    const to=setTimeout(()=>{im.onload=im.onerror=null;im.src='';rej(new Error('délai dépassé'));},maxMs||15000);
+    im.onload=()=>{clearTimeout(to);res(im);};
+    im.onerror=()=>{clearTimeout(to);rej(new Error('image'));};
     im.src=url;
   });
 }
@@ -499,33 +502,68 @@ async function prepareRefsInner(){
     msg('refs-msg','Téléchargement des images MarvelCDB…');
     const route=await pickImageRoute(all[0].img);
     B.imgVia=route?route.via:null;B.corsBlocked=!!route&&route.via==='blocked';
-    let done=0,fail=0;
-    const queue=all.slice();
-    const worker=async()=>{
-      while(queue.length&&route&&route.map){
-        const c=queue.shift();
-        for(let k=0;k<2;k++){   // 2ᵉ essai : un service de transfert refuse parfois une image quand on en demande beaucoup d'un coup
+    let fail=0;
+    const slow=!!route&&route.via!=='direct'&&route.via!=='blocked';
+    const maps=route&&route.map?[route.map].concat(slow?IMG_PROXIES.filter(p=>p.name!==route.via).map(p=>p.url):[]):[];
+    // Un service de transfert limite le nombre de demandes qui se suivent (c'est ce qui avait laissé 59 cartes en plus sur 60 sans image) :
+    // on avance posément (2 à la fois, avec une pause qui double quand le service refuse puis redescend), on réessaie chaque image avec une
+    // attente croissante, on tente un autre service quelques fois, puis une seconde passe plus lente reprend ce qui manque encore.
+    // Si le service ne répond plus du tout (6 images de suite), on s'arrête plutôt que d'insister ; au bout de 2 minutes aussi.
+    let gap=slow?250:0,altBudget=10;
+    const deadline=Date.now()+120000;
+    const grab=async(c,tries)=>{
+      for(let k=0;k<maps.length;k++){
+        if(k>0){if(altBudget<=0)break;altBudget--;}
+        for(let t=0;t<(k===0?tries:1);t++){
           try{
-            const im=await loadImage(route.map(c.img),true),cv=toCanvas(im);
+            const im=await loadImage(maps[k](c.img),true,k===0?15000:8000),cv=toCanvas(im);
             B.refs.mcdb.set(c.code,{desc:describe(cv),name:c.name,decoy:!!c.decoy});
             if(!c.decoy)B.refCanvas.set(c.code,cv);
-            break;
-          }catch(e){if(k===0)await sleep(500);else fail++;}
+            if(slow)gap=Math.max(250,Math.round(gap*.85));
+            return true;
+          }catch(e){
+            if(k===0){if(slow)gap=Math.min(2500,gap*2);await sleep(slow?gap*(t+1):500);}
+          }
         }
-        prog.value=++done;
       }
+      return false;
     };
-    await Promise.all([worker(),worker(),worker(),worker()]);
+    const runPass=async(list,nWorkers,tries,minGap,maxConsec,label)=>{
+      const q=list.slice(),failed=[];let n=0,consec=0;
+      prog.max=list.length;prog.value=0;
+      const worker=async()=>{
+        while(maps.length&&consec<maxConsec){
+          const c=q.shift();            // on prend l'image avant de patienter : l'autre ouvrier peut vider la file pendant la pause
+          if(!c)break;
+          if(Date.now()>deadline){failed.push(c);continue;}
+          if(slow)await sleep(Math.max(gap,minGap));
+          if(await grab(c,tries))consec=0;else{failed.push(c);consec++;}
+          prog.value=++n;
+          msg('refs-msg',label+' '+n+' / '+list.length);
+        }
+      };
+      await Promise.all(Array.from({length:nWorkers},worker));
+      return failed.concat(q);          // ce qui n'a pas pu être tenté compte aussi comme manquant
+    };
+    let failed=await runPass(all,slow?2:4,slow?3:2,0,6,'Téléchargement des images MarvelCDB…');
+    if(failed.length&&slow&&Date.now()<deadline){
+      msg('refs-msg','Le service ralentit : nouvel essai des images manquantes dans quelques secondes…');
+      await sleep(8000);
+      failed=await runPass(failed,1,2,800,4,'Nouvel essai des images manquantes, plus lentement…');
+    }
+    fail=failed.length;
+    B.imgFail=fail;B.decoyLoaded=B.decoys.filter(c=>B.refs.mcdb.has(c.code)).length;
     prog.hidden=true;
     if(B.corsBlocked){
       text='Les photos officielles de MarvelCDB ne peuvent pas être lues par cette page, même en passant par un service de transfert d’images (réglage de leur serveur). Le test se fera donc en 2 temps : le téléphone mémorise d’abord vos cartes, puis les retrouve.';
       $('ref-mcdb').checked=false;$('ref-own').checked=true;autoOwn=true;
     }else if(!B.refs.mcdb.size){text='Aucune image MarvelCDB n’a pu être téléchargée (connexion ?).';}
     else{
-      const miss=B.cards.filter(c=>!B.refs.mcdb.has(c.code)).length;
-      text=`✓ Prêt : ${B.refs.mcdb.size} photo${B.refs.mcdb.size>1?'s':''} MarvelCDB téléchargée${B.refs.mcdb.size>1?'s':''}${fail?` (${fail} échec${fail>1?'s':''})`:''}${B.decoys.length?`, dont ${B.decoys.length} carte${B.decoys.length>1?'s':''} en plus pour compliquer`:''}. `
+      const miss=B.cards.filter(c=>!B.refs.mcdb.has(c.code)).length,dn=B.decoys.length,dl=B.decoyLoaded;
+      text=`✓ Prêt : ${B.refs.mcdb.size} photo${B.refs.mcdb.size>1?'s':''} MarvelCDB téléchargée${B.refs.mcdb.size>1?'s':''}${dn?`, dont ${dl} carte${dl>1?'s':''} en plus sur ${dn} demandée${dn>1?'s':''}`:''}${fail?` (${fail} image${fail>1?'s':''} introuvable${fail>1?'s':''})`:''}. `
         +(route.via!=='direct'?`Elles sont lues via le service public ${route.via}, car MarvelCDB ne laisse pas une page web les lire directement. `:'')
-        +(miss?`⚠ ${miss} carte${miss>1?'s':''} sans photo : ${miss>1?'elles seront passées':'elle sera passée'}.`:'');
+        +(miss?`⚠ ${miss} carte${miss>1?'s':''} à tester sans photo : ${miss>1?'elles seront passées':'elle sera passée'}. `:'')
+        +(dn&&dl<dn*.6?`⚠ Seulement ${dl} carte${dl>1?'s':''} en plus sur ${dn} ${dl>1?'ont':'a'} pu être téléchargée${dl>1?'s':''} (le service de transfert limite le nombre de demandes) : le test sera plus facile qu’en vrai. Recliquez sur « Préparer les images » dans une minute pour réessayer.`:'');
     }
   }
   if(wantO)text+=(text?' ':'')+'✓ Prêt : le téléphone mémorisera d’abord vos cartes, au début du test.';
@@ -945,6 +983,7 @@ function summarize(t,partial){
     if(!s)return;
     html+=`<h3 class="res">${esc(label)}${partial?' (test interrompu)':''}</h3>
       <div class="kpi"><div><b>${pct(s.acc1)}</b><small>reconnues du 1ᵉʳ coup (${s.ok1}/${s.n})</small></div><div><b>${pct(s.acc3)}</b><small>dans les 3 premières</small></div><div><b>${s.medMs} ms</b><small>temps de calcul médian</small></div><div><b>${s.pool}</b><small>cartes possibles</small></div></div>
+      ${s.pool<30?`<div class="msg"><b>⚠ Seulement ${s.pool} cartes possibles.</b> Un résultat sur si peu de cartes est trop optimiste : dans la machine il y en aura des dizaines, voire des milliers. Refaites le test avec « Cartes en plus pour compliquer » bien chargées (voir le message de l’étape 1).</div>`:''}
       ${verdict(s)}
       <div class="msg">Si on n’acceptait que les reconnaissances les plus sûres (le programme demanderait à vérifier les autres) : ${pct(s.c80.precision)} de bonnes réponses sur les ${pct(s.c80.coverage)} les plus sûres, ${pct(s.c60.precision)} sur les ${pct(s.c60.coverage)} les plus sûres.</div>`;
     if(s.errors.length)html+=`<table><tr><th>Carte présentée</th><th>Reconnue comme</th><th>Confiance</th></tr>${s.errors.map(e=>`<tr><td class="ko">${esc(e.asked)}</td><td>${esc(e.got)}</td><td>${Math.round(e.score*100)} %</td></tr>`).join('')}</table>`;
@@ -962,7 +1001,7 @@ function exportObject(){
     format:'machine-marvel/banc-reconnaissance',version:1,
     date:new Date().toISOString(),
     appareil:{agent:navigator.userAgent,camera:B.stream?`${v.videoWidth}×${v.videoHeight}`:null,cadre:Math.round((B.guide.w/(v.videoHeight||1))*100)/100},
-    reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,ecartFond:+$('set-present').value,guide:+$('set-guide').value,leurres:B.decoys.length,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
+    reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,ecartFond:+$('set-present').value,guide:+$('set-guide').value,leurres:B.decoys.length,leurresDemandes:B.decoys.length,leurresCharges:B.decoyLoaded||0,imagesEchecs:B.imgFail||0,imagesVia:B.imgVia||null,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
     cartes:B.cards.map(c=>({code:c.code,nom:c.name})),
     essaiABlanc:B.blank||null,
     resume:t.stats||null,
