@@ -8,8 +8,11 @@
 <title>Banc d'essai de reconnaissance des cartes</title>
 <!--
   BANC D'ESSAI — reconnaissance des cartes par la caméra du téléphone (ou la webcam du PC).
-  Page autonome : aucune connexion à l'appli de suivi, aucune donnée envoyée nulle part (la caméra et les
-  calculs restent dans le navigateur ; seules les images et listes de cartes de MarvelCDB sont téléchargées).
+  Page autonome : aucune connexion à l'appli de suivi, rien de ce que filme la caméra n'est envoyé (les calculs restent
+  dans le navigateur ; seules les images et listes de cartes de MarvelCDB sont téléchargées). Si MarvelCDB refuse la lecture
+  directe de ses images par une page web, elles passent par un service public de transfert d'images (images.weserv.nl,
+  wsrv.nl, allorigins.win, codetabs.com ou corsproxy.io, essayés dans cet ordre) : seule l'adresse de la photo officielle
+  d'une carte y transite.
   Sert à décider « téléphone ou caméra dans la machine » avant tout achat (voir §3 du document de référence
   de la machine : « À valider empiriquement avant de s'y fier »).
 -->
@@ -111,8 +114,8 @@ details.faq p{margin:6px 0 0 2px;}
 <body>
 <header class="top">
   <h1>Banc d'essai de reconnaissance des cartes</h1>
-  <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien n'est envoyé : la caméra et les calculs restent dans votre navigateur.</p>
-  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 3 · 30 octobre 2026 : mode d'emploi simplifié</p>
+  <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien de ce que filme la caméra ne quitte votre téléphone : les calculs se font dans votre navigateur.</p>
+  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 4 · 30 octobre 2026 : photos officielles lues même si MarvelCDB les bloque</p>
 </header>
 <main>
 
@@ -269,7 +272,7 @@ const B={
   corsBlocked:false,
   stream:null,devices:[],devIdx:0,
   test:null,           // {queue,qi,trials,startedAt}
-  armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,
+  armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,imgVia:null,
   bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour
   guide:{x:0,y:0,w:0,h:0},
   audio:null
@@ -458,6 +461,22 @@ function toCanvas(im,maxW){
   c.getContext('2d').drawImage(im,0,0,w,h);
   return c;
 }
+// MarvelCDB n'autorise pas la lecture de ses images par une page web (pas d'en-tête CORS) : on passe alors par un service public de
+// transfert d'images, qui ajoute cette autorisation. Seule l'adresse de la photo officielle d'une carte y transite (jamais la caméra).
+const IMG_PROXIES=[
+  {name:'images.weserv.nl',url:u=>'https://images.weserv.nl/?url='+encodeURIComponent(u)+'&w=300&output=png'},
+  {name:'wsrv.nl',url:u=>'https://wsrv.nl/?url='+encodeURIComponent(u)+'&w=300&output=png'},
+  {name:'images.weserv.nl',url:u=>'https://images.weserv.nl/?url='+encodeURIComponent(u.replace(/^https?:\/\//,''))+'&w=300&output=png'},
+  {name:'allorigins.win',url:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
+  {name:'codetabs.com',url:u=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u)},
+  {name:'corsproxy.io',url:u=>'https://corsproxy.io/?url='+encodeURIComponent(u)}
+];
+async function pickImageRoute(sample){    // → {via,map} | {via:'blocked'} | null (pas de réseau)
+  try{await loadImage(sample,true);return{via:'direct',map:u=>u};}catch(_){}
+  try{await loadImage(sample,false);}catch(_){return null;}   // même sans l'autorisation, l'image ne se charge pas : problème de connexion
+  for(const p of IMG_PROXIES){try{await loadImage(p.url(sample),true);return{via:p.name,map:p.url};}catch(_){}}
+  return{via:'blocked'};
+}
 async function prepareRefs(){
   B.preparing=true;updateNext();
   try{await prepareRefsInner();}finally{B.preparing=false;updateStartButton();}
@@ -478,29 +497,36 @@ async function prepareRefsInner(){
     const all=B.cards.concat(B.decoys);
     const prog=$('refs-progress');prog.hidden=false;prog.max=all.length;prog.value=0;
     msg('refs-msg','Téléchargement des images MarvelCDB…');
-    let done=0,fail=0,checked=false;
+    const route=await pickImageRoute(all[0].img);
+    B.imgVia=route?route.via:null;B.corsBlocked=!!route&&route.via==='blocked';
+    let done=0,fail=0;
     const queue=all.slice();
     const worker=async()=>{
-      while(queue.length){
+      while(queue.length&&route&&route.map){
         const c=queue.shift();
-        try{
-          const im=await loadImage(c.img,true),cv=toCanvas(im);
-          B.refs.mcdb.set(c.code,{desc:describe(cv),name:c.name,decoy:!!c.decoy});
-          if(!c.decoy)B.refCanvas.set(c.code,cv);
-        }catch(e){
-          fail++;
-          if(!checked){checked=true;try{await loadImage(c.img,false);B.corsBlocked=true;}catch(_){}}
+        for(let k=0;k<2;k++){   // 2ᵉ essai : un service de transfert refuse parfois une image quand on en demande beaucoup d'un coup
+          try{
+            const im=await loadImage(route.map(c.img),true),cv=toCanvas(im);
+            B.refs.mcdb.set(c.code,{desc:describe(cv),name:c.name,decoy:!!c.decoy});
+            if(!c.decoy)B.refCanvas.set(c.code,cv);
+            break;
+          }catch(e){if(k===0)await sleep(500);else fail++;}
         }
         prog.value=++done;
       }
     };
     await Promise.all([worker(),worker(),worker(),worker()]);
     prog.hidden=true;
-    if(B.corsBlocked&&B.refs.mcdb.size===0){
-      text='Les photos officielles de MarvelCDB ne peuvent pas être lues par cette page (réglage de leur serveur). Le test se fera donc en 2 temps : le téléphone mémorise d’abord vos cartes, puis les retrouve.';
+    if(B.corsBlocked){
+      text='Les photos officielles de MarvelCDB ne peuvent pas être lues par cette page, même en passant par un service de transfert d’images (réglage de leur serveur). Le test se fera donc en 2 temps : le téléphone mémorise d’abord vos cartes, puis les retrouve.';
       $('ref-mcdb').checked=false;$('ref-own').checked=true;autoOwn=true;
     }else if(!B.refs.mcdb.size){text='Aucune image MarvelCDB n’a pu être téléchargée (connexion ?).';}
-    else text=`✓ Prêt : ${B.refs.mcdb.size} photo${B.refs.mcdb.size>1?'s':''} MarvelCDB téléchargée${B.refs.mcdb.size>1?'s':''}${fail?` (${fail} échec${fail>1?'s':''})`:''}${B.decoys.length?`, dont ${B.decoys.length} carte${B.decoys.length>1?'s':''} en plus pour compliquer`:''}. `;
+    else{
+      const miss=B.cards.filter(c=>!B.refs.mcdb.has(c.code)).length;
+      text=`✓ Prêt : ${B.refs.mcdb.size} photo${B.refs.mcdb.size>1?'s':''} MarvelCDB téléchargée${B.refs.mcdb.size>1?'s':''}${fail?` (${fail} échec${fail>1?'s':''})`:''}${B.decoys.length?`, dont ${B.decoys.length} carte${B.decoys.length>1?'s':''} en plus pour compliquer`:''}. `
+        +(route.via!=='direct'?`Elles sont lues via le service public ${route.via}, car MarvelCDB ne laisse pas une page web les lire directement. `:'')
+        +(miss?`⚠ ${miss} carte${miss>1?'s':''} sans photo : ${miss>1?'elles seront passées':'elle sera passée'}.`:'');
+    }
   }
   if(wantO)text+=(text?' ':'')+'✓ Prêt : le téléphone mémorisera d’abord vos cartes, au début du test.';
   msg('refs-msg',text.trim(),(wantM&&B.refs.mcdb.size)||wantO||autoOwn?'ok':'err');
