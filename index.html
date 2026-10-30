@@ -108,6 +108,8 @@ ol.steps li{margin:5px 0;}
 details.faq{margin-top:10px;font-size:13px;color:var(--dim);}
 details.faq summary{cursor:pointer;font-weight:700;}
 details.faq p{margin:6px 0 0 2px;}
+img.tn{width:34px;height:48px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:6px;background:var(--surf3);}
+#prompt.bigp img{width:104px;height:146px;}
 @media (max-width:520px){.adv .grid{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -115,32 +117,42 @@ details.faq p{margin:6px 0 0 2px;}
 <header class="top">
   <h1>Banc d'essai de reconnaissance des cartes</h1>
   <p>Le téléphone (ou la webcam) reconnaît-il vos cartes sleevées ? Ce test le mesure avec vos vraies cartes, sans rien acheter. Rien de ce que filme la caméra ne quitte votre téléphone : les calculs se font dans votre navigateur.</p>
-  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 5 · 30 octobre 2026 : cartes en plus téléchargées plus patiemment (essais répétés, pauses, seconde passe)</p>
+  <p style="font-size:11px;opacity:.7;margin-top:6px">Version 6 · 30 octobre 2026 : test avec vos propres cartes (sans MarvelCDB, sans nom à saisir)</p>
 </header>
 <main>
 
 <div id="nextbar" class="nextbar" role="status" aria-live="polite"></div>
 
 <section class="how">
-  <h2>Comment ça marche <small>(environ 5 minutes)</small></h2>
+  <h2>Comment ça marche <small>(environ 10 minutes)</small></h2>
   <ol>
-    <li><b>Vous choisissez des cartes</b> (l'adresse d'un de vos decks MarvelCDB).</li>
-    <li><b>Vous les retrouvez</b> dans votre collection, avec leur sleeve.</li>
+    <li><b>Vous préparez des cartes</b> de votre collection, avec leur sleeve : 30 cartes différentes, n'importe lesquelles.</li>
     <li><b>Vous démarrez la caméra</b>, au-dessus de la table.</li>
-    <li><b>Une carte à la fois</b> : vous la posez dans le cadre, le téléphone dit s'il l'a reconnue, vous la retirez.</li>
+    <li><b>Temps 1 : le téléphone les mémorise.</b> Une carte à la fois : vous la posez dans le cadre, un bip dit qu'elle est prise en photo, vous la retirez et la mettez de côté.</li>
+    <li><b>Temps 2 : il doit les retrouver.</b> Il affiche la photo d'une carte (dans le désordre) ; vous la retrouvez, vous la reposez dans le cadre, et il dit s'il l'a reconnue.</li>
   </ol>
-  <div class="hint">À la fin, vous obtenez un pourcentage de cartes reconnues, à me renvoyer. Les réglages par défaut suffisent : vous n'avez rien d'autre à régler.</div>
+  <div class="hint">Rien à saisir : ni adresse, ni nom de carte, ni MarvelCDB. À la fin, vous obtenez un pourcentage de cartes reconnues, à me renvoyer. Les réglages par défaut suffisent.</div>
 </section>
 
 <section class="step" id="st1">
-  <h2><span class="n">1</span>Choisir les cartes à montrer</h2>
-  <div class="sub">Pour reconnaître une carte, le téléphone doit savoir lesquelles il peut voir. Il prend quelques cartes d'un deck : ce sont celles que vous lui montrerez.</div>
+  <h2><span class="n">1</span>Préparer les cartes</h2>
+  <div class="sub">Le téléphone mémorise d'abord des cartes de votre collection, puis vous les lui remontrez dans le désordre pour voir s'il les retrouve. C'est la situation de la vraie machine : ses propres photos, avec vos sleeves.</div>
   <div class="tabs" role="tablist">
-    <button type="button" id="tab-deck" class="on" role="tab" onclick="showTab('deck')">Un deck MarvelCDB</button>
+    <button type="button" id="tab-own" class="on" role="tab" onclick="showTab('own')">Mes propres cartes</button>
+    <button type="button" id="tab-deck" role="tab" onclick="showTab('deck')">Un deck MarvelCDB</button>
     <button type="button" id="tab-rand" role="tab" onclick="showTab('rand')">Au hasard</button>
     <button type="button" id="tab-order" role="tab" onclick="showTab('order')">Commande machine</button>
   </div>
-  <div id="pane-deck">
+  <div id="pane-own">
+    <div class="sub" style="margin:0 0 8px">Rien à saisir : le téléphone prend en photo des cartes de votre collection (n'importe lesquelles, avec leur sleeve), puis vous les lui remontrez dans le désordre.</div>
+    <div class="row" style="align-items:center"><label class="lbl" for="n-mem" style="margin:0">Cartes à mémoriser :</label>
+      <select id="n-mem" style="max-width:120px"><option value="10">10</option><option value="20">20</option><option value="30" selected>30</option><option value="50">50</option></select></div>
+    <div class="row" style="align-items:center"><label class="lbl" for="n-find" style="margin:0">Cartes à retrouver ensuite :</label>
+      <select id="n-find" style="max-width:120px"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
+    <div class="hint">Plus il y a de cartes mémorisées, plus le test est sévère : dans la vraie machine il y en aura des milliers. 30 et 10 font un bon premier essai (environ 6 minutes).</div>
+    <div class="row"><button type="button" class="pri big" id="btn-own" onclick="chooseOwn()">Préparer le test</button></div>
+  </div>
+  <div id="pane-deck" hidden>
     <label class="lbl" for="deck-link">Adresse d'un de vos decks</label>
     <div class="row"><input id="deck-link" type="text" placeholder="https://marvelcdb.com/decklist/view/…" autocomplete="off" inputmode="url"><button type="button" class="pri big" id="btn-deck" onclick="chooseFromDeck()">Choisir les cartes</button></div>
     <div class="hint">Sur MarvelCDB, ouvrez la page de votre deck, copiez l'adresse en haut du navigateur (elle contient « decklist/view » ou « deck/view »), puis collez-la ici.</div>
@@ -154,13 +166,15 @@ details.faq p{margin:6px 0 0 2px;}
     <textarea id="order-json" placeholder='{"format":"machine-marvel/commande", …}'></textarea>
     <div class="row" style="margin-top:8px"><button type="button" class="pri" id="btn-order" onclick="chooseFromOrder()">Prendre ces cartes</button></div>
   </div>
-  <label class="lbl" for="n-cards">Combien de cartes allez-vous montrer ? <span style="font-weight:400">(8 suffisent pour un premier essai)</span></label>
-  <input id="n-cards" type="number" min="3" max="60" value="8" inputmode="numeric" style="max-width:120px">
+  <div id="n-cards-wrap" hidden>
+    <label class="lbl" for="n-cards">Combien de cartes allez-vous montrer ? <span style="font-weight:400">(8 suffisent pour un premier essai)</span></label>
+    <input id="n-cards" type="number" min="3" max="60" value="8" inputmode="numeric" style="max-width:120px">
+  </div>
   <div class="msg" id="st1-msg" role="status"></div>
   <div class="cards" id="card-list"></div>
   <progress id="refs-progress" value="0" max="1" hidden></progress>
   <div class="msg" id="refs-msg" role="status"></div>
-  <details class="adv" id="opts"><summary>Options (facultatif : vous pouvez les ignorer)</summary>
+  <details class="adv" id="opts" hidden><summary>Options (facultatif : vous pouvez les ignorer)</summary>
     <label class="chk"><input type="checkbox" id="ref-mcdb" checked><span>Comparer avec les photos officielles de MarvelCDB<small>Rien à préparer. Elles sont en anglais et sans sleeve, mais l'illustration est la même que sur vos cartes.</small></span></label>
     <label class="chk"><input type="checkbox" id="ref-own"><span>D'abord montrer chaque carte une fois au téléphone (test en 2 temps, deux fois plus long)<small>Le téléphone mémorise vos cartes (mêmes sleeves, même lumière), puis les retrouve : c'est le meilleur cas possible.</small></span></label>
     <div class="row" style="align-items:center"><label class="lbl" for="n-decoys" style="margin:0">Cartes en plus pour compliquer :</label>
@@ -198,7 +212,7 @@ details.faq p{margin:6px 0 0 2px;}
     <li>Appuyez sur <b>Démarrer la caméra</b> et acceptez l'autorisation de la caméra.</li>
     <li>Placez le téléphone au-dessus d'un <b>endroit vide</b> de la table : vous voyez la table à l'écran, avec un <b>cadre pointillé</b>. C'est là que viendra la carte.</li>
     <li>Appuyez sur <b>Lancer le test</b>, puis <b>ne posez rien pendant 2 secondes</b> : le téléphone regarde la table vide.</li>
-    <li>Le téléphone affiche la carte à montrer : <b>posez-la à plat dans le cadre</b>, sans bouger. Un bip dit qu'elle a été vue. <b>Retirez-la</b>, puis posez la suivante.</li>
+    <li>Le téléphone vous dit quoi faire. <b>Temps 1</b> : posez une carte au choix à plat dans le cadre, sans bouger ; un bip dit qu'elle est mémorisée ; <b>retirez-la</b> et mettez-la de côté. <b>Temps 2</b> : il affiche la photo d'une carte ; retrouvez-la, posez-la à plat, puis retirez-la.</li>
   </ol>
   <div class="ctl"><button type="button" class="pri big" id="btn-cam" onclick="startCamera()">Démarrer la caméra</button><button type="button" id="btn-switch" onclick="switchCamera()" disabled>Changer de caméra</button></div>
   <div id="cam"><video id="video" playsinline muted></video><div id="guide"></div><div id="cam-state"></div></div>
@@ -231,6 +245,7 @@ details.faq p{margin:6px 0 0 2px;}
     <p><b>La caméra ne s'allume pas.</b> Touchez le cadenas à gauche de l'adresse, puis « Autorisations » › « Appareil photo » › « Autoriser », et rechargez la page.</p>
     <p><b>Le téléphone ne voit jamais ma carte.</b> Vérifiez que le cadre était vide au départ ; approchez ou éloignez le téléphone pour que la carte remplisse le cadre pointillé ; sinon touchez « Prendre la photo maintenant », ou baissez « Écart avec la table vide » dans les réglages.</p>
     <p><b>Il se trompe de carte.</b> C'est justement ce que le test mesure : continuez, c'est le résultat final qui compte.</p>
+    <p><b>Pour un test plus sévère.</b> Entre le temps 1 et le temps 2, changez un peu l'angle du téléphone ou la lumière : une station fixe aura moins de variations, mais ce sera un bon moyen de voir jusqu'où ça tient.</p>
     <p><b>J'ai bougé le téléphone.</b> Touchez « Remesurer la table vide » et ne posez rien pendant 2 secondes.</p>
   </details>
 </section>
@@ -260,7 +275,11 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const imgUrl=c=>String(c.imagesrc).startsWith('http')?c.imagesrc:MCDB+c.imagesrc;
 function showTab(t){
-  ['deck','order','rand'].forEach(k=>{$('pane-'+k).hidden=k!==t;$('tab-'+k).classList.toggle('on',k===t);});
+  ['own','deck','order','rand'].forEach(k=>{$('pane-'+k).hidden=k!==t;$('tab-'+k).classList.toggle('on',k===t);});
+  const own=t==='own';
+  $('n-cards-wrap').hidden=own;$('opts').hidden=own;       // le nombre de cartes MarvelCDB et leurs options ne servent pas avec « mes propres cartes »
+  if(B.tab==='own'&&!own){$('ref-mcdb').checked=true;$('ref-own').checked=false;}   // retour aux réglages par défaut du chemin MarvelCDB
+  B.tab=t;
 }
 
 // État du banc
@@ -273,6 +292,7 @@ const B={
   stream:null,devices:[],devIdx:0,
   test:null,           // {queue,qi,trials,startedAt}
   armed:false,still:0,lastSmall:null,lastCapAt:0,preparing:false,imgVia:null,decoyLoaded:0,imgFail:0,
+  tab:'own',nFind:10,mem:{n:0,dups:0,sims:[]},     // mode « mes propres cartes » : cartes à retrouver, bilan de la mémorisation
   bg:null,calibSince:0,dd:null,mIn:[],mRing:[],maskKey:'',   // fond vide mesuré, écart courant, cases du cadre et du pourtour
   guide:{x:0,y:0,w:0,h:0},
   audio:null
@@ -323,14 +343,27 @@ function nWanted(){return Math.max(3,Math.min(60,parseInt($('n-cards').value,10)
 function setCards(cards,label){
   B.cards=cards;
   B.refs={mcdb:new Map(),own:new Map()};B.refCanvas=new Map();
-  $('card-list').innerHTML=cards.map(c=>`<span>${esc(c.name)}${c.qty>1?` <b>×${c.qty}</b>`:''}</span>`).join('');
-  msg('st1-msg',cards.length?`${cards.length} carte${cards.length>1?'s':''} choisie${cards.length>1?'s':''} ${label?'('+label+')':''}. Retrouvez-les dans vos cartes (avec leur sleeve) et posez-les à côté de vous.`:'Aucune carte utilisable (cartes « portrait » seulement : alliés, événements, ressources, soutiens, améliorations…).',cards.length?'ok':'err');
-  $('btn-refs').disabled=!cards.length;
+  const own=!!(cards[0]&&cards[0].own);
+  $('card-list').innerHTML=own?'':cards.map(c=>`<span>${esc(c.name)}${c.qty>1?` <b>×${c.qty}</b>`:''}</span>`).join('');
+  if(own)msg('st1-msg',`✓ Prêt : le téléphone va mémoriser ${cards.length} cartes, puis vous en remontrerez ${B.nFind} dans le désordre. Préparez ${cards.length} cartes différentes de votre collection (avec leur sleeve) et posez-les à côté de vous.`,'ok');
+  else msg('st1-msg',cards.length?`${cards.length} carte${cards.length>1?'s':''} choisie${cards.length>1?'s':''} ${label?'('+label+')':''}. Retrouvez-les dans vos cartes (avec leur sleeve) et posez-les à côté de vous.`:'Aucune carte utilisable (cartes « portrait » seulement : alliés, événements, ressources, soutiens, améliorations…).',cards.length?'ok':'err');
+  $('btn-refs').disabled=!cards.length||own;
   $('btn-blank').disabled=true;
   B.last=null;$('summary').innerHTML='<div class="msg">Pas encore de résultat.</div>';$('btn-copy').disabled=true;$('btn-dl').disabled=true;$('copy-msg').textContent='';
   updateStartButton();
 }
-function afterChoose(){if(B.cards.length&&B.autoPrep!==false)prepareRefs();}   // les images de comparaison se préparent toutes seules
+function afterChoose(){if(B.cards.length&&B.autoPrep!==false)prepareRefs();}
+// Mode « mes propres cartes » : aucune image ni aucun nom à aller chercher. Les cartes sont anonymes (« Carte 1 »…), le téléphone
+// les mémorise au temps 1, puis le temps 2 montre la photo prise pour que la personne retrouve la carte physique.
+function chooseOwn(){
+  const K=Math.max(3,parseInt($('n-mem').value,10)||30);
+  B.nFind=Math.max(2,Math.min(K,parseInt($('n-find').value,10)||10));
+  B.decoys=[];B.decoyLoaded=0;B.imgFail=0;B.imgVia=null;B.corsBlocked=false;
+  const cards=[];for(let i=1;i<=K;i++)cards.push({code:'m'+i,name:'Carte '+i,pack:'',img:'',qty:1,own:true});
+  $('ref-mcdb').checked=false;$('ref-own').checked=true;
+  setCards(cards,'');
+  msg('refs-msg','');$('refs-progress').hidden=true;
+}   // les images de comparaison se préparent toutes seules
 async function chooseFromDeck(){
   const link=parseDeckLink($('deck-link').value);
   if(!link){msg('st1-msg','Lien non reconnu : il doit ressembler à marvelcdb.com/decklist/view/… ou marvelcdb.com/deck/view/…','err');return;}
@@ -486,6 +519,7 @@ async function prepareRefs(){
 }
 async function prepareRefsInner(){
   if(!B.cards.length)return;
+  if(B.cards[0].own){msg('refs-msg','Rien à préparer : le téléphone mémorisera vos cartes pendant le test.','ok');return;}
   $('btn-refs').disabled=true;$('btn-blank').disabled=true;
   const wantM=$('ref-mcdb').checked,wantO=$('ref-own').checked;
   B.refs.mcdb=new Map();B.refs.own=new Map();B.refCanvas=new Map();B.corsBlocked=false;
@@ -811,6 +845,7 @@ function capture(){
 // PROTOCOLE DU TEST : apprentissage (si demandé), puis test dans le désordre
 // ═══════════════════════════════════════════════════════════════════════════
 function refsReady(){
+  if(B.cards.length&&B.cards[0].own)return true;     // « mes propres cartes » : tout se mémorise pendant le test
   // Si les images MarvelCDB sont demandées, elles doivent être prêtes ; l'apprentissage, lui, se fait pendant le test.
   const needM=$('ref-mcdb').checked,readyM=!needM||B.refs.mcdb.size>0;
   return !!(B.cards.length&&readyM&&($('ref-own').checked||B.refs.mcdb.size>0));
@@ -828,11 +863,11 @@ function updateNext(){
   if(B.test){el.hidden=true;return;}
   el.hidden=false;
   let t;
-  if(!B.cards.length)t='➜ Étape 1 : collez l’adresse d’un de vos decks MarvelCDB (ou choisissez « Au hasard »), puis touchez « Choisir les cartes ».';
+  if(!B.cards.length)t='➜ Étape 1 : choisissez le nombre de cartes ci-dessous, puis touchez « Préparer le test » (ou utilisez un deck MarvelCDB).';
   else if(B.preparing)t='⏳ Préparation en cours (téléchargement des images)… un instant.';
   else if(!refsReady())t='⚠ Les images de comparaison ne sont pas prêtes (connexion ?). Ouvrez « Options », puis touchez « Préparer à nouveau ».';
   else if(B.last&&B.stream)t='✓ Test terminé : copiez les résultats tout en bas de la page. Pour recommencer, touchez « Lancer le test ».';
-  else if(!B.stream)t='➜ Étape 2 : retrouvez vos '+B.cards.length+' cartes, puis touchez « Démarrer la caméra » (acceptez l’autorisation).';
+  else if(!B.stream)t=B.cards[0].own?'➜ Étape 2 : préparez '+B.cards.length+' cartes différentes de votre collection (avec leur sleeve), puis touchez « Démarrer la caméra » (acceptez l’autorisation).':'➜ Étape 2 : retrouvez vos '+B.cards.length+' cartes, puis touchez « Démarrer la caméra » (acceptez l’autorisation).';
   else t='➜ Posez le téléphone au-dessus d’un endroit vide de la table (le cadre pointillé bien visible), puis touchez « Lancer le test ».';
   el.textContent=t;
 }
@@ -850,12 +885,13 @@ function beep(ok){
 }
 function startTest(){
   if(!B.cards.length||!B.stream)return;
-  const learn=$('ref-own').checked;
+  const own=!!B.cards[0].own,learn=own||$('ref-own').checked;
   const queue=[];
-  if(learn){B.refs.own=new Map();B.cards.forEach(c=>queue.push({card:c,phase:'learn'}));}
-  shuffle(B.cards.slice()).forEach(c=>queue.push({card:c,phase:'test'}));
+  if(learn){B.refs.own=new Map();B.cards.forEach(c=>{queue.push({card:c,phase:'learn'});if(own)delete c.photo;});}
+  if(own)B.mem={n:0,dups:0,sims:[]};                      // le temps 2 est préparé quand le temps 1 est fini (voir advance)
+  else shuffle(B.cards.slice()).forEach(c=>queue.push({card:c,phase:'test'}));
   try{B.audio=B.audio||new (window.AudioContext||window.webkitAudioContext)();B.audio.resume();}catch(_){}  // le son demande un geste de l'utilisateur
-  B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0};
+  B.test={queue,qi:0,trials:[],startedAt:Date.now(),skipped:0,own,testsQueued:!own};
   B.armed=true;B.still=0;B.capSmall=null;B.bg=null;B.calibSince=0;
   updateNext();
   $('btn-start').disabled=true;$('btn-stop').disabled=false;$('btn-skip').disabled=false;$('btn-bg').disabled=false;$('test-ctl').hidden=false;
@@ -870,9 +906,15 @@ function showPrompt(){
   const t=B.test,item=t.queue[t.qi];
   const nTest=t.queue.filter(q=>q.phase==='test').length,nLearn=t.queue.length-nTest;
   $('prompt').classList.add('on');
-  $('p-img').src=item.card.img;
   const learn=item.phase==='learn';
+  $('prompt').classList.toggle('bigp',!!item.card.own&&!learn);
+  $('p-img').src=item.card.own?(learn?PH_IMG:(item.card.photo||PH_IMG)):item.card.img;
   $('p-phase').textContent=learn?`TEMPS 1 SUR 2 · CARTE ${t.qi+1} / ${nLearn}`:(nLearn?`TEMPS 2 SUR 2 · CARTE ${t.qi-nLearn+1} / ${nTest}`:`CARTE ${t.qi+1} / ${nTest}`);
+  if(item.card.own){
+    $('p-name').textContent=learn?'Une carte au choix':'Retrouvez cette carte';
+    $('p-sub').textContent=learn?'Prenez une carte de votre collection que vous n’avez pas encore montrée et posez-la à plat dans le cadre : le téléphone la mémorise. Retirez-la, puis mettez-la de côté.':'C’est la photo prise au temps 1. La carte est parmi celles mises de côté : posez-la à plat dans le cadre, sans bouger.';
+    return;
+  }
   $('p-name').textContent=item.card.name;
   $('p-sub').textContent=(item.card.pack?item.card.pack+' · ':'')+(learn?'Posez-la à plat dans le cadre : le téléphone la mémorise.':'Posez-la à plat dans le cadre, sans bouger.');
 }
@@ -892,7 +934,18 @@ function handleCapture(canvas){
   const t=B.test;if(!t)return;
   const item=t.queue[t.qi],t0=performance.now();
   const variants=variantsOf(canvas);
-  if(item.phase==='learn'){
+  if(item.phase==='learn'&&item.card.own){
+    const r=B.refs.own.size?rank(variants,B.refs.own):[],best=r.length?r[0]:null;
+    if(best&&best.score>=DUP_SIM){
+      B.mem.dups++;
+      setFeedback(`Cette carte ressemble beaucoup à la « ${best.name} » déjà mémorisée : montrez-en une autre. (Si c’est bien une autre carte, touchez « Passer cette carte ».)`,'ko');beep(false);
+      return;
+    }
+    item.card.photo=thumbOf(canvas,120,168,.7);
+    B.refs.own.set(item.card.code,{desc:variants[0],name:item.card.name});
+    B.mem.n++;B.mem.sims.push(best?+best.score.toFixed(3):0);
+    setFeedback(`Mémorisée (${item.card.name} sur ${t.queue.filter(q=>q.phase==='learn').length}). Retirez-la et mettez-la de côté.`,'learn');beep(true);
+  }else if(item.phase==='learn'){
     B.refs.own.set(item.card.code,{desc:variants[0],name:item.card.name});
     setFeedback(`Mémorisée : ${item.card.name}. Retirez-la.`,'learn');beep(true);
   }else{
@@ -909,13 +962,28 @@ function handleCapture(canvas){
     }
   }
   t.qi++;
-  if(t.qi>=t.queue.length)finishTest();else showPrompt();
+  advance();
 }
-function thumbOf(canvas){
-  const c=document.createElement('canvas');c.width=64;c.height=90;
+function thumbOf(canvas,w,h,q){
+  w=w||64;h=h||90;
+  const c=document.createElement('canvas');c.width=w;c.height=h;
   const cw=canvas.width/1.12,ch=canvas.height/1.12;
-  c.getContext('2d').drawImage(canvas,(canvas.width-cw)/2,(canvas.height-ch)/2,cw,ch,0,0,64,90);
-  return c.toDataURL('image/jpeg',.6);
+  c.getContext('2d').drawImage(canvas,(canvas.width-cw)/2,(canvas.height-ch)/2,cw,ch,0,0,w,h);
+  return c.toDataURL('image/jpeg',q||.6);
+}
+// Au temps 1 de « mes propres cartes » : une carte qui ressemble déjà beaucoup à une carte mémorisée est refusée (la même carte montrée
+// deux fois rendrait le test ambigu). Le bilan des ressemblances (la plus proche des cartes déjà vues pour chaque nouvelle carte) part dans l'export.
+const DUP_SIM=.85;
+const PH_IMG='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="62" height="87" viewBox="0 0 62 87"><rect width="62" height="87" rx="6" fill="#d9d9e3"/><text x="31" y="55" font-size="34" font-family="sans-serif" font-weight="700" text-anchor="middle" fill="#7b7b8f">?</text></svg>');
+// Passe à l'invite suivante. En mode « mes propres cartes », le temps 2 se prépare quand le temps 1 est fini : seules les cartes
+// réellement mémorisées peuvent être demandées.
+function advance(){
+  const t=B.test;
+  if(t.qi>=t.queue.length&&!t.testsQueued){
+    t.testsQueued=true;
+    shuffle(B.cards.filter(c=>B.refs.own.has(c.code))).slice(0,B.nFind).forEach(c=>t.queue.push({card:c,phase:'test'}));
+  }
+  if(t.qi>=t.queue.length)finishTest();else showPrompt();
 }
 function evaluate(variants,asked){
   const res={};
@@ -934,7 +1002,7 @@ function skipCard(){
   t.qi++;B.still=0;
   // Si la carte passée est encore dans le cadre, elle doit d'abord partir : sinon elle serait prise pour la suivante.
   if(B.bg&&B.dd&&B.dd.inD>+$('set-present').value){B.armed=false;B.capSmall=B.lastSmall;B.lastCapAt=Date.now();}else B.armed=true;
-  if(t.qi>=t.queue.length)finishTest();else showPrompt();
+  advance();
 }
 function stopTest(user){
   const t=B.test;if(!t)return;
@@ -965,7 +1033,7 @@ function statsFor(trials,kind){
   const sorted=rows.slice().sort((a,b)=>b.margin-a.margin);
   const cover=q=>{const k=Math.max(1,Math.round(n*q)),part=sorted.slice(0,k);return{coverage:k/n,precision:part.filter(r=>r.ok1).length/k,minMargin:part[part.length-1].margin};};
   const ms=rows.map(r=>r.ms).sort((a,b)=>a-b);
-  return{kind,n,ok1,ok3,acc1:ok1/n,acc3:ok3/n,pool:rows[0].pool,medMs:ms[Math.floor(ms.length/2)],meanScoreOk:avg(rows.filter(r=>r.ok1).map(r=>r.score)),meanMarginOk:avg(rows.filter(r=>r.ok1).map(r=>r.margin)),c100:cover(1),c80:cover(.8),c60:cover(.6),errors:rows.filter(r=>!r.ok1).map(r=>({asked:r.name,got:r.top[0].n,score:r.score,margin:r.margin}))};
+  return{kind,n,ok1,ok3,acc1:ok1/n,acc3:ok3/n,pool:rows[0].pool,medMs:ms[Math.floor(ms.length/2)],meanScoreOk:avg(rows.filter(r=>r.ok1).map(r=>r.score)),meanMarginOk:avg(rows.filter(r=>r.ok1).map(r=>r.margin)),c100:cover(1),c80:cover(.8),c60:cover(.6),errors:rows.filter(r=>!r.ok1).map(r=>({asked:r.name,got:r.top[0].n,askedCode:r.asked,gotCode:r.top[0].c,score:r.score,margin:r.margin}))};
 }
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
 function verdict(s){
@@ -975,6 +1043,8 @@ function verdict(s){
   return`<div class="verdict bad"><b>Insuffisant avec cette méthode simple.</b> ${pct(s.acc1)} du premier coup seulement. Cela ne condamne pas l’idée : on peut essayer les points caractéristiques (ORB) ou un réseau de neurones, et améliorer la prise de vue.</div>`;
 }
 function summarize(t,partial){
+  const own=!!(B.cards[0]&&B.cards[0].own);
+  const ph=code=>{const c=B.cards.find(x=>x.code===code);return c&&c.photo?`<img class="tn" src="${c.photo}" alt="">`:'';};
   const kinds=[['mcdb','Avec les photos officielles de MarvelCDB'],['own','Avec vos cartes mémorisées (test en 2 temps)']];
   let html='';
   const all={};
@@ -983,10 +1053,10 @@ function summarize(t,partial){
     if(!s)return;
     html+=`<h3 class="res">${esc(label)}${partial?' (test interrompu)':''}</h3>
       <div class="kpi"><div><b>${pct(s.acc1)}</b><small>reconnues du 1ᵉʳ coup (${s.ok1}/${s.n})</small></div><div><b>${pct(s.acc3)}</b><small>dans les 3 premières</small></div><div><b>${s.medMs} ms</b><small>temps de calcul médian</small></div><div><b>${s.pool}</b><small>cartes possibles</small></div></div>
-      ${s.pool<30?`<div class="msg"><b>⚠ Seulement ${s.pool} cartes possibles.</b> Un résultat sur si peu de cartes est trop optimiste : dans la machine il y en aura des dizaines, voire des milliers. Refaites le test avec « Cartes en plus pour compliquer » bien chargées (voir le message de l’étape 1).</div>`:''}
+      ${s.pool<30?`<div class="msg"><b>⚠ Seulement ${s.pool} cartes possibles.</b> Un résultat sur si peu de cartes est trop optimiste : dans la machine il y en aura des dizaines, voire des milliers. ${own?'Refaites le test en mémorisant plus de cartes (50).':'Refaites le test avec « Cartes en plus pour compliquer » bien chargées (voir le message de l’étape 1).'}</div>`:''}
       ${verdict(s)}
       <div class="msg">Si on n’acceptait que les reconnaissances les plus sûres (le programme demanderait à vérifier les autres) : ${pct(s.c80.precision)} de bonnes réponses sur les ${pct(s.c80.coverage)} les plus sûres, ${pct(s.c60.precision)} sur les ${pct(s.c60.coverage)} les plus sûres.</div>`;
-    if(s.errors.length)html+=`<table><tr><th>Carte présentée</th><th>Reconnue comme</th><th>Confiance</th></tr>${s.errors.map(e=>`<tr><td class="ko">${esc(e.asked)}</td><td>${esc(e.got)}</td><td>${Math.round(e.score*100)} %</td></tr>`).join('')}</table>`;
+    if(s.errors.length)html+=`<table><tr><th>Carte présentée</th><th>Reconnue comme</th><th>Confiance</th></tr>${s.errors.map(e=>`<tr><td class="ko">${own?ph(e.askedCode):''}${esc(e.asked)}</td><td>${own?ph(e.gotCode):''}${esc(e.got)}</td><td>${Math.round(e.score*100)} %</td></tr>`).join('')}</table>`;
   });
   if(!html)html='<div class="msg">Aucune carte n’a pu être évaluée.</div>';
   if(t.skipped)html+=`<div class="msg">${t.skipped} carte${t.skipped>1?'s':''} passée${t.skipped>1?'s':''}.</div>`;
@@ -1001,6 +1071,8 @@ function exportObject(){
     format:'machine-marvel/banc-reconnaissance',version:1,
     date:new Date().toISOString(),
     appareil:{agent:navigator.userAgent,camera:B.stream?`${v.videoWidth}×${v.videoHeight}`:null,cadre:Math.round((B.guide.w/(v.videoHeight||1))*100)/100},
+    mode:(B.cards[0]&&B.cards[0].own)?'mes-cartes':'marvelcdb',
+    memorisation:(B.cards[0]&&B.cards[0].own)?{memorisees:B.mem.n,aRetrouver:B.nFind,doublonsRefuses:B.mem.dups,ressemblanceMax:B.mem.sims.length?Math.max.apply(null,B.mem.sims):0,ressemblanceMoyenne:+avg(B.mem.sims).toFixed(3)}:null,
     reglages:{still:+$('set-still').value,frames:+$('set-frames').value,leave:+$('set-leave').value,ecartFond:+$('set-present').value,guide:+$('set-guide').value,leurres:B.decoys.length,leurresDemandes:B.decoys.length,leurresCharges:B.decoyLoaded||0,imagesEchecs:B.imgFail||0,imagesVia:B.imgVia||null,apprentissage:$('ref-own').checked,imagesMarvelCDB:B.refs.mcdb.size>0},
     cartes:B.cards.map(c=>({code:c.code,nom:c.name})),
     essaiABlanc:B.blank||null,
@@ -1027,6 +1099,7 @@ function downloadResults(){
 }
 
 // Réglages affichés
+showTab('own');
 ['still','frames','leave','present','guide'].forEach(k=>$('set-'+k).addEventListener('input',()=>{$('v-'+k).textContent=$('set-'+k).value;if(k==='guide')layoutGuide();}));
 $('ref-own').addEventListener('change',updateStartButton);
 $('ref-mcdb').addEventListener('change',updateStartButton);
